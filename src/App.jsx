@@ -430,61 +430,80 @@ function App() {
   const isOvertime = triggeredEvents.has('FINAL');
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 
-      {/* MAIN TIMER DISPLAY */}
-      <motion.div
-        animate={{ scale: isRunning ? 1.05 : 1 }}
-        transition={{ duration: 1, repeat: isRunning ? Infinity : 0, repeatType: "reverse" }}
-        className={`text-huge ${isNearEnd() || isOvertime ? 'text-alert' : ''}`}
-      >
-        {formatTime(elapsedTime)}
-      </motion.div>
+      {/* CENTERED TIMER AND ALERT */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+        {/* MAIN TIMER DISPLAY */}
+        <motion.div
+          animate={{ scale: isRunning ? 1.05 : 1 }}
+          transition={{ duration: 1, repeat: isRunning ? Infinity : 0, repeatType: "reverse" }}
+          className={`text-huge ${isNearEnd() || isOvertime ? 'text-alert' : ''}`}
+        >
+          {formatTime(elapsedTime)}
+        </motion.div>
 
-      {/* NEXT ALERT PILL */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className="alert-pill"
-        style={{
-          background: isOvertime ? 'rgba(239, 68, 68, 0.2)' : undefined,
-          color: isOvertime ? '#fca5a5' : undefined
-        }}
-      >
-        <Bell size={14} fill="currentColor" />
-        {(!isRunning && isOvertime) ?
-          `Overtime: +${formatTime(elapsedTime - (targetTime * 1000))}`
-          : getNextAlert()
-        }
-      </motion.div>
-
-      {/* LAP LIST (Scrollable Area) */}
-      <div style={{
-        flex: 1, width: '100%', maxWidth: '90%', overflowY: 'auto', marginTop: '20px', marginBottom: '120px', padding: '0 20px',
-        maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)'
-      }}>
-        <AnimatePresence>
-          {laps.map((lap) => (
-            <motion.div
-              key={lap.id}
-              initial={{ opacity: 0, x: -20, height: 0 }}
-              animate={{ opacity: 1, x: 0, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              style={{
-                display: 'flex', justifyContent: 'space-between', padding: '16px 20px',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                color: 'rgba(255,255,255,0.9)',
-                fontFamily: 'Inter, system-ui, sans-serif',
-                fontSize: '1.2rem', // Bigger Font
-                fontWeight: 500
-              }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>Lap {lap.number}</span>
-              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>+{formatLapTime(lap.split)}</span>
-              <span style={{ fontFamily: 'monospace', fontWeight: 400, opacity: 0.8 }}>{formatLapTime(lap.time)}</span>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {/* NEXT ALERT PILL */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="alert-pill"
+          style={{
+            background: isOvertime ? 'rgba(239, 68, 68, 0.2)' : undefined,
+            color: isOvertime ? '#fca5a5' : undefined
+          }}
+        >
+          <Bell size={14} fill="currentColor" />
+          {(!isRunning && isOvertime) ?
+            `Overtime: +${formatTime(elapsedTime - (targetTime * 1000))}`
+            : getNextAlert()
+          }
+        </motion.div>
       </div>
+
+      {/* LAP LIST (Bottom Left Corner) */}
+      {laps.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '140px',
+          left: '20px',
+          width: '320px',
+          maxHeight: '300px',
+          overflowY: 'auto',
+          background: 'rgba(15, 23, 42, 0.8)',
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(148, 163, 184, 0.15)',
+          borderRadius: '16px',
+          padding: '12px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+          zIndex: 5
+        }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Laps
+          </div>
+          <AnimatePresence>
+            {laps.map((lap) => (
+              <motion.div
+                key={lap.id}
+                initial={{ opacity: 0, x: -20, height: 0 }}
+                animate={{ opacity: 1, x: 0, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', padding: '10px 12px',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  fontSize: '0.95rem',
+                  fontWeight: 500
+                }}
+              >
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>#{lap.number}</span>
+                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>+{formatLapTime(lap.split)}</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 400, opacity: 0.8, fontSize: '0.85rem' }}>{formatLapTime(lap.time)}</span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* CONTROL BAR */}
       <div style={{ position: 'fixed', bottom: '40px', zIndex: 10 }}>
