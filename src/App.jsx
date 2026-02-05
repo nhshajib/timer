@@ -438,7 +438,7 @@ function App() {
         <motion.div
           animate={{ scale: isRunning ? 1.05 : 1 }}
           transition={{ duration: 1, repeat: isRunning ? Infinity : 0, repeatType: "reverse" }}
-          className={`text-huge ${isNearEnd() || isOvertime ? 'text-alert' : ''}`}
+          className={`text-huge ${isOvertime ? 'text-overtime' : (isNearEnd() ? 'text-alert' : '')}`}
         >
           {formatTime(elapsedTime)}
         </motion.div>
