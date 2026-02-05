@@ -150,6 +150,51 @@ body::after {
   }
 }
 
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0) scale(1);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-8px) scale(1.02);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(8px) scale(1.02);
+  }
+}
+
+@keyframes overtime-pulse {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 40px rgba(239, 68, 68, 0.6));
+    transform: scale(1);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 80px rgba(239, 68, 68, 1));
+    transform: scale(1.03);
+  }
+}
+
+.text-overtime {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #fca5a5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: overtime-pulse 1s ease-in-out infinite, shake 0.5s ease-in-out;
+}
+
 .text-label {
   font-size: 0.875rem;
   font-weight: 600;
