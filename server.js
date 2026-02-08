@@ -71,10 +71,27 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Get custom filename from form data
+    const customFilename = req.body.customFilename;
+    let finalFilename = req.file.filename;
+
+    if (customFilename) {
+        // Sanitize custom filename
+        const sanitized = customFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
+        // Ensure it has an extension
+        const hasExtension = /\.[a-zA-Z0-9]+$/.test(sanitized);
+        finalFilename = hasExtension ? sanitized : `${sanitized}.mp3`;
+
+        // Rename the file
+        const oldPath = req.file.path;
+        const newPath = path.join(UPLOAD_DIR, finalFilename);
+        fs.renameSync(oldPath, newPath);
+    }
+
     res.json({
         success: true,
-        filename: req.file.filename,
-        path: `/custom_sounds/${req.file.filename}`
+        filename: finalFilename,
+        path: `/custom_sounds/${finalFilename}`
     });
 });
 

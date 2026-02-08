@@ -6,6 +6,7 @@
   "scripts": {
     "start:server": "node server.js",
     "dev": "vite",
+    "prebuild": "node generate-manifest.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

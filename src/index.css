@@ -101,12 +101,12 @@ body::after {
 
 /* === TYPOGRAPHY === */
 .text-huge {
-  font-size: clamp(7rem, 28vw, 16rem);
+  font-size: calc(clamp(14rem, 45vw, 28rem) * var(--clock-scale, 1.0));
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 0.9;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%);
+  background: var(--clock-color, linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -324,6 +324,28 @@ body::after {
   transform: translateY(-2px) scale(1.02);
 }
 
+.btn-circle:active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+
 .btn-circle.small {
   width: 56px;
   height: 56px;
@@ -522,4 +544,52 @@ select.input-modern {
     width: 72px;
     height: 72px;
   }
+}
+
+/* === HIGH CONTRAST MODE === */
+body.high-contrast {
+  --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
+  --glass-bg: rgba(0, 0, 0, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+}
+
+body.high-contrast .text-huge {
+  background: #ffffff;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+}
+
+body.high-contrast .glass-panel,
+body.high-contrast .modal-card,
+body.high-contrast .control-bar {
+  border: 2px solid #ffffff;
+  background: rgba(0, 0, 0, 0.95);
+}
+
+body.high-contrast .btn-circle {
+  border: 2px solid #ffffff;
+  background: #000000;
+  color: #ffffff;
+}
+
+body.high-contrast .btn-circle:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+body.high-contrast .input-modern {
+  border: 2px solid #ffffff;
+  background: #000000;
+  color: #ffffff;
+}
+
+body.high-contrast .alert-pill {
+  border: 2px solid #ffffff;
+  background: #000000;
+  color: #ffffff;
 }
