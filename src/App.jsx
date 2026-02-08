@@ -169,6 +169,11 @@ function App() {
     localStorage.setItem('timer-volume', volume.toString());
   }, [volume]);
 
+  // Persist timerMode changes
+  useEffect(() => {
+    localStorage.setItem('timer-mode', timerMode);
+  }, [timerMode]);
+
   const resetVisuals = () => {
     setClockScale(1.0);
     setColorThresholds(DEFAULT_COLORS);
@@ -235,6 +240,11 @@ function App() {
   // Elapsed Time in MILLISECONDS
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+
+  // Timer Mode: 'stopwatch' (count up) or 'countdown' (count down)
+  const [timerMode, setTimerMode] = useState(() => {
+    return localStorage.getItem('timer-mode') || 'stopwatch';
+  });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -600,11 +610,19 @@ function App() {
 
 
   // --- RENDER HELPERS ---
-  const formatTime = (ms) => {
-    const totalSec = Math.floor(ms / 1000); // Floor for stopwatch (0...1...2)
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  const formatTime = (elapsedMs) => {
+    if (timerMode === 'countdown') {
+      const remainingMs = Math.max(0, (targetTime * 1000) - elapsedMs);
+      const totalSec = Math.floor(remainingMs / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    } else {
+      const totalSec = Math.floor(elapsedMs / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
   };
 
   // Detailed format for laps
@@ -768,6 +786,52 @@ function App() {
           />
         </svg>
 
+        {/* MODE TOGGLE */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '4px',
+            background: 'rgba(15, 23, 42, 0.6)',
+            padding: '4px',
+            borderRadius: '12px',
+            border: '1px solid rgba(148, 163, 184, 0.1)',
+            marginTop: '16px',
+            marginBottom: '12px'
+          }}
+        >
+          <button
+            onClick={() => setTimerMode('stopwatch')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: timerMode === 'stopwatch' ? 'rgba(96, 165, 250, 0.2)' : 'transparent',
+              color: timerMode === 'stopwatch' ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            ⏱ Stopwatch
+          </button>
+          <button
+            onClick={() => setTimerMode('countdown')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: timerMode === 'countdown' ? 'rgba(96, 165, 250, 0.2)' : 'transparent',
+              color: timerMode === 'countdown' ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            ⏳ Countdown
+          </button>
+        </div>
 
 
         {/* NEXT ALERT PILL - Enhanced */}
