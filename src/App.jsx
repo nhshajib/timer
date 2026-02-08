@@ -637,10 +637,9 @@ function App() {
   const progressPercent = targetTime > 0 ? Math.min((elapsedTime / 1000) / targetTime * 100, 100) : 0;
 
   // Pill Shape Constants (ViewBox 1000x500)
-  // Scaling based on clockScale
-  const pillW = 900 * clockScale;
-  const pillH = 460 * clockScale;
-  const pillR = (460 * clockScale) / 2;
+  const pillW = 900;
+  const pillH = 460;
+  const pillR = pillH / 2;
   const pillStraight = pillW - (pillR * 2);
   const pillCircumference = (2 * pillStraight) + (2 * Math.PI * pillR);
   const strokeDashoffset = pillCircumference - (progressPercent / 100) * pillCircumference;
@@ -704,7 +703,10 @@ function App() {
             aspectRatio: '2 / 1',
             pointerEvents: 'none',
             opacity: 0.9,
-            zIndex: 10
+            zIndex: 10,
+            transform: `scale(${clockScale})`,
+            transformOrigin: 'center center',
+            transition: 'transform var(--transition-base)'
           }}
         >
           {/* Background Path */}
