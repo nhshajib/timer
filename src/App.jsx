@@ -64,6 +64,13 @@ function App() {
     return parseInt(localStorage.getItem('timer-volume') || '100');
   });
 
+  // Pomodoro Mode State
+  const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+  const [pomodoroPhase, setPomodoroPhase] = useState('work'); // 'work' or 'break'
+  const [pomodoroWorkTime] = useState(25 * 60); // 25 minutes in seconds
+  const [pomodoroBreakTime] = useState(5 * 60); // 5 minutes in seconds
+  const [pomodoroCount, setPomodoroCount] = useState(0); // completed work sessions
+
   // Visual Customization State
   const DEFAULT_COLORS = [
     { id: 1, time: 30, color: '#fbbf24', type: 'warning' }, // Yellow at < 30s
@@ -451,7 +458,34 @@ function App() {
         playSound(finalSound);
         vibrate([200, 100, 200]); // Pattern vibration for final alarm
         safeTriggerAdd('FINAL');
-        // Note: We do NOT stop the timer as requested.
+
+        // Pomodoro auto-cycle logic
+        if (pomodoroEnabled) {
+          setTimeout(() => {
+            if (pomodoroPhase === 'work') {
+              // Finished work, start break
+              setPomodoroPhase('break');
+              setTargetTime(pomodoroBreakTime);
+              setPomodoroCount(prev => prev + 1);
+              setElapsedTime(0);
+              lastTickRef.current = 0;
+              setTriggeredEvents(new Set());
+              triggeredRef.current = new Set();
+              startTimeRef.current = Date.now();
+              showToast('Great work! Take a 5 min break 🎉', 'success');
+            } else {
+              // Finished break, start work
+              setPomodoroPhase('work');
+              setTargetTime(pomodoroWorkTime);
+              setElapsedTime(0);
+              lastTickRef.current = 0;
+              setTriggeredEvents(new Set());
+              triggeredRef.current = new Set();
+              startTimeRef.current = Date.now();
+              showToast('Break over! Back to work 💪', 'info');
+            }
+          }, 1000); // Small delay after final alarm
+        }
       }
     }
   };
@@ -831,7 +865,53 @@ function App() {
           >
             ⏳ Countdown
           </button>
+          <button
+            onClick={() => {
+              setPomodoroEnabled(!pomodoroEnabled);
+              if (!pomodoroEnabled) {
+                // Enabling Pomodoro: set to work mode
+                setTimerMode('countdown');
+                setTargetTime(pomodoroWorkTime);
+                setPomodoroPhase('work');
+                showToast('Pomodoro started! 25 min work session', 'success');
+              }
+            }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: pomodoroEnabled ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+              color: pomodoroEnabled ? '#ef4444' : 'rgba(255,255,255,0.5)',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            🍅 Pomodoro
+          </button>
         </div>
+
+        {/* Pomodoro Phase Indicator */}
+        {pomodoroEnabled && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+            padding: '6px 12px',
+            background: pomodoroPhase === 'work' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+            border: `1px solid ${pomodoroPhase === 'work' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            color: pomodoroPhase === 'work' ? '#f87171' : '#4ade80'
+          }}>
+            <span>{pomodoroPhase === 'work' ? '💼 Work' : '☕ Break'}</span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span style={{ opacity: 0.7 }}>{pomodoroCount} sessions</span>
+          </div>
+        )}
 
 
         {/* NEXT ALERT PILL - Enhanced */}
