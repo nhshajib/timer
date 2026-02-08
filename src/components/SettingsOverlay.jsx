@@ -29,7 +29,8 @@ const SettingsOverlay = ({
     clockScale,
     setClockScale,
     colorThresholds,
-    setColorThresholds
+    setColorThresholds,
+    onResetVisuals
 }) => {
     const [activeTab, setActiveTab] = useState('timer');
     const [newMin, setNewMin] = useState(1);
@@ -425,64 +426,72 @@ const SettingsOverlay = ({
 
                                         {/* Color Thresholds */}
                                         <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Dynamic Colors</div>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Stage Colors (Time-Based)</div>
                                             <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
-                                                Change the clock color when the remaining time is less than or equal to:
+                                                Change the timer color as you get closer to the target.
                                             </div>
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                {colorThresholds.sort((a, b) => b.time - a.time).map((t, idx) => (
-                                                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '8px' }}>
-                                                        <input
-                                                            type="number"
-                                                            value={t.time}
-                                                            onChange={(e) => {
-                                                                const val = parseInt(e.target.value) || 0;
-                                                                const newThresholds = colorThresholds.map(thresh =>
-                                                                    thresh.id === t.id ? { ...thresh, time: val } : thresh
-                                                                );
-                                                                setColorThresholds(newThresholds);
-                                                            }}
-                                                            style={{
-                                                                width: '60px',
-                                                                background: 'rgba(255,255,255,0.1)',
-                                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                                color: 'white',
-                                                                borderRadius: '4px',
-                                                                padding: '4px 6px',
-                                                                fontSize: '0.85rem'
-                                                            }}
-                                                        />
-                                                        <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>sec</span>
+                                                {[...colorThresholds].sort((a, b) => b.time - a.time).map((t) => (
+                                                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '10px' }}>
+                                                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', minWidth: '70px' }}>Below</span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <input
+                                                                type="number"
+                                                                value={t.time}
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value) || 0;
+                                                                    const newThresholds = colorThresholds.map(thresh =>
+                                                                        thresh.id === t.id ? { ...thresh, time: val } : thresh
+                                                                    );
+                                                                    setColorThresholds(newThresholds);
+                                                                }}
+                                                                style={{
+                                                                    width: '60px',
+                                                                    background: 'rgba(255,255,255,0.1)',
+                                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                                    color: 'white',
+                                                                    borderRadius: '6px',
+                                                                    padding: '4px 8px',
+                                                                    fontSize: '0.9rem',
+                                                                    fontWeight: 700,
+                                                                    textAlign: 'center'
+                                                                }}
+                                                            />
+                                                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>sec</span>
+                                                        </div>
 
-                                                        <input
-                                                            type="color"
-                                                            value={t.color}
-                                                            onChange={(e) => {
-                                                                const newThresholds = colorThresholds.map(thresh =>
-                                                                    thresh.id === t.id ? { ...thresh, color: e.target.value } : thresh
-                                                                );
-                                                                setColorThresholds(newThresholds);
-                                                            }}
-                                                            style={{
-                                                                marginLeft: 'auto',
-                                                                width: '32px',
-                                                                height: '32px',
-                                                                border: 'none',
-                                                                background: 'none',
-                                                                cursor: 'pointer',
-                                                                padding: 0
-                                                            }}
-                                                        />
+                                                        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                                                            <input
+                                                                type="color"
+                                                                value={t.color}
+                                                                onChange={(e) => {
+                                                                    const newThresholds = colorThresholds.map(thresh =>
+                                                                        thresh.id === t.id ? { ...thresh, color: e.target.value } : thresh
+                                                                    );
+                                                                    setColorThresholds(newThresholds);
+                                                                }}
+                                                                style={{
+                                                                    width: '32px',
+                                                                    height: '32px',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    cursor: 'pointer',
+                                                                    padding: 0
+                                                                }}
+                                                            />
 
-                                                        {(t.type !== 'warning' && t.type !== 'final') && (
-                                                            <button
-                                                                onClick={() => setColorThresholds(prev => prev.filter(p => p.id !== t.id))}
-                                                                style={{ background: 'none', border: 'none', color: '#ef4444', padding: '4px', cursor: 'pointer' }}
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        )}
+                                                            {t.type !== 'warning' && t.type !== 'final' ? (
+                                                                <button
+                                                                    onClick={() => setColorThresholds(prev => prev.filter(p => p.id !== t.id))}
+                                                                    style={{ background: 'none', border: 'none', color: '#ef4444', padding: '4px', cursor: 'pointer', opacity: 0.6 }}
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            ) : (
+                                                                <div style={{ width: '24px' }} />
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))}
 
@@ -491,24 +500,50 @@ const SettingsOverlay = ({
                                                         ...prev,
                                                         { id: Date.now(), time: 10, color: '#ec4899', type: 'custom' }
                                                     ])}
-                                                    className="btn-circle small"
                                                     style={{
                                                         width: '100%',
-                                                        borderRadius: '8px',
-                                                        background: 'rgba(148, 163, 184, 0.1)',
-                                                        border: '1px dashed rgba(255,255,255,0.2)',
-                                                        color: 'rgba(255,255,255,0.6)',
-                                                        fontSize: '0.8rem',
+                                                        borderRadius: '10px',
+                                                        background: 'rgba(96, 165, 250, 0.1)',
+                                                        border: '1px dashed rgba(96, 165, 250, 0.3)',
+                                                        color: '#60a5fa',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 600,
+                                                        padding: '10px',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        gap: '4px',
-                                                        marginTop: '4px'
+                                                        gap: '6px',
+                                                        cursor: 'pointer'
                                                     }}
                                                 >
-                                                    <Plus size={14} /> Add Color Threshold
+                                                    <Plus size={16} /> Add New Stage
                                                 </button>
                                             </div>
+                                        </div>
+
+                                        {/* Reset Button */}
+                                        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+                                            <button
+                                                onClick={onResetVisuals}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    background: 'rgba(239, 68, 68, 0.1)',
+                                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                    color: '#f87171',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.9rem',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '8px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <RotateCcw size={16} />
+                                                Reset Visuals to Default
+                                            </button>
                                         </div>
                                     </div>
                                 )}

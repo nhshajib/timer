@@ -64,21 +64,20 @@ function App() {
   });
 
   // Visual Customization State
+  const DEFAULT_COLORS = [
+    { id: 1, time: 30, color: '#fbbf24', type: 'warning' }, // Yellow at < 30s
+    { id: 2, time: 0, color: '#ef4444', type: 'final' }    // Red at target (0s left)
+  ];
+
   const [clockScale, setClockScale] = useState(() => {
     return parseFloat(localStorage.getItem('timer-clock-scale') || '1.0');
   });
   const [colorThresholds, setColorThresholds] = useState(() => {
     try {
       const saved = localStorage.getItem('timer-color-thresholds');
-      return saved ? JSON.parse(saved) : [
-        { id: 1, time: 30, color: '#fbbf24', type: 'warning' }, // Default yellow < 30s
-        { id: 2, time: 0, color: '#ef4444', type: 'final' }    // Default red at 0
-      ];
+      return saved ? JSON.parse(saved) : DEFAULT_COLORS;
     } catch {
-      return [
-        { id: 1, time: 30, color: '#fbbf24', type: 'warning' },
-        { id: 2, time: 0, color: '#ef4444', type: 'final' }
-      ];
+      return DEFAULT_COLORS;
     }
   });
 
@@ -168,6 +167,12 @@ function App() {
   useEffect(() => {
     localStorage.setItem('timer-volume', volume.toString());
   }, [volume]);
+
+  const resetVisuals = () => {
+    setClockScale(1.0);
+    setColorThresholds(DEFAULT_COLORS);
+    showToast('Visuals reset to defaults', 'success');
+  };
 
   // Mobile & Accessibility State (moved functions and useEffects after main state declarations)
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -883,6 +888,7 @@ function App() {
         setClockScale={setClockScale}
         colorThresholds={colorThresholds}
         setColorThresholds={setColorThresholds}
+        onResetVisuals={resetVisuals}
       />
 
       {/* Toast Notifications */}
