@@ -18,6 +18,7 @@ const WARNING_SOUNDS = {
 
 import SettingsOverlay from './components/SettingsOverlay';
 import ToastContainer from './components/Toast';
+import ShortcutsModal from './components/ShortcutsModal';
 
 
 function App() {
@@ -236,6 +237,7 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   // Track triggered events to play once. Set<string|number> (ID or 'FINAL')
   const [triggeredEvents, setTriggeredEvents] = useState(new Set());
 
@@ -476,9 +478,19 @@ function App() {
     }
   }, [isRunning]);
 
-  const toggleTimer = () => setIsRunning(!isRunning);
+  // Undo Reset State
+  const [lastResetState, setLastResetState] = useState(null);
 
   const resetTimer = () => {
+    // Store current state for undo
+    if (elapsedTime > 0 || laps.length > 0) {
+      setLastResetState({
+        elapsedTime,
+        laps: [...laps],
+        triggeredEvents: new Set(triggeredEvents)
+      });
+    }
+
     setIsRunning(false);
     setElapsedTime(0);
     lastTickRef.current = 0;
@@ -486,8 +498,21 @@ function App() {
     triggeredRef.current = new Set();
     setLaps([]); // Clear laps
     if (workerRef.current) workerRef.current.postMessage('STOP');
-    showToast('Timer reset', 'info', 2000);
+    showToast('Timer reset', 'info', 5000);
   };
+
+  const undoReset = () => {
+    if (!lastResetState) return;
+    setElapsedTime(lastResetState.elapsedTime);
+    setLaps(lastResetState.laps);
+    setTriggeredEvents(lastResetState.triggeredEvents);
+    triggeredRef.current = lastResetState.triggeredEvents;
+    lastTickRef.current = lastResetState.elapsedTime;
+    setLastResetState(null);
+    showToast('Reset undone', 'success', 2000);
+  };
+
+  const toggleTimer = () => setIsRunning(!isRunning);
 
   const handleLap = () => {
     const now = elapsedTime;
@@ -533,6 +558,7 @@ function App() {
         case 'escape':
           e.preventDefault();
           setIsSettingsOpen(false);
+          setIsShortcutsOpen(false);
           break;
         case '1':
           e.preventDefault();
@@ -558,6 +584,10 @@ function App() {
           e.preventDefault();
           setTargetTime(30 * 60);
           showToast('Timer set to 30 minutes', 'info', 2000);
+          break;
+        case '?':
+          e.preventDefault();
+          setIsShortcutsOpen(true);
           break;
         default:
           break;
@@ -812,13 +842,71 @@ function App() {
         </div>
       )}
 
+      {/* QUICK-START PRESETS BAR */}
+      {!isRunning && elapsedTime === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          style={{
+            position: 'fixed',
+            bottom: '130px',
+            display: 'flex',
+            gap: '10px',
+            zIndex: 10
+          }}
+        >
+          {[5, 10, 15, 25, 30].map(min => (
+            <button
+              key={min}
+              onClick={() => {
+                setTargetTime(min * 60);
+                setIsRunning(true);
+                showToast(`Started ${min} minute timer`, 'success', 2000);
+              }}
+              style={{
+                background: 'rgba(96, 165, 250, 0.15)',
+                border: '1px solid rgba(96, 165, 250, 0.3)',
+                color: '#60a5fa',
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                backdropFilter: 'blur(12px)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(96, 165, 250, 0.25)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(96, 165, 250, 0.15)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              {min}m
+            </button>
+          ))}
+        </motion.div>
+      )}
+
       {/* CONTROL BAR */}
       <div style={{ position: 'fixed', bottom: '40px', zIndex: 10 }}>
         <div className="control-bar">
-          {/* LEFT BUTTON: Lap (Running) vs Reset (Paused) */}
+          {/* LEFT BUTTON: Lap (Running) vs Reset/Undo (Paused) */}
           {isRunning ? (
             <button className="btn-circle small" onClick={handleLap} style={{ color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.1)' }}>
               <Plus size={24} strokeWidth={3} />
+            </button>
+          ) : lastResetState ? (
+            <button
+              className="btn-circle small"
+              onClick={undoReset}
+              style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.15)' }}
+              title="Undo Reset"
+            >
+              <RotateCcw size={24} style={{ transform: 'scaleX(-1)' }} />
             </button>
           ) : (
             <button className="btn-circle small" onClick={resetTimer}>
@@ -890,6 +978,9 @@ function App() {
         setColorThresholds={setColorThresholds}
         onResetVisuals={resetVisuals}
       />
+
+      {/* Keyboard Shortcuts Modal */}
+      <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
