@@ -1,218 +1,277 @@
-import { useState, useRef, useEffect } from 'react';
-// We rely on direct paths for now, assuming public or correctly served assets. 
-// For better production builds, we would import these, but dynamic imports with spaces can be tricky.
-// We will use the paths provided by the user relative to src/assets, assuming they are available via URL.
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-const SOUND_MAP = {
-    'soft': '/src/assets/first warning.mp3',
-    'urgent': '/src/assets/second warning.mp3',
-    'final_warning_1': '/src/assets/final warning.mp3',
-    'final_warning_2': '/src/assets/final warning 2.mp3',
-};
-
-export const useTimer = () => {
-    // Load duration from local storage (Default 5 minutes / 300000 ms)
-    const [duration, setDuration] = useState(() => {
-        try {
-            const saved = localStorage.getItem('antigravity-duration');
-            return saved ? parseInt(saved, 10) : 300000;
-        } catch (e) {
-            console.error(e);
-            return 300000;
-        }
-    });
-
-    // Initialize timeLeft to duration
-    const [timeLeft, setTimeLeft] = useState(duration);
-
+export const useTimer = ({
+    initialTargetTime,
+    initialTimerMode,
+    playSound,
+    showToast,
+    vibrate,
+    finalSound,
+    WARNING_SOUNDS,
+    availableSounds,
+    volume,
+    voiceAnnouncements = false,
+    voiceAnnouncementMilestones = [600, 300, 60],
+    voiceFinalWarning = 30,
+    voiceSelection = '',
+    pomodoroWorkTime = 25 * 60,
+    pomodoroBreakTime = 5 * 60,
+    onSessionComplete
+}) => {
+    // --- Timer State ---
+    const [elapsedTime, setElapsedTime] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
-    const [isAlerting, setIsAlerting] = useState(false);
+    const [timerMode, setTimerMode] = useState(initialTimerMode || 'stopwatch');
+    const [targetTime, setTargetTime] = useState(initialTargetTime || (5 * 60));
+    const [triggeredEvents, setTriggeredEvents] = useState(new Set());
+    const [laps, setLaps] = useState([]);
+    const [lastResetState, setLastResetState] = useState(null);
 
-    // Load warnings from local storage
-    const [warnings, setWarnings] = useState(() => {
-        try {
-            const saved = localStorage.getItem('antigravity-warnings');
-            const parsed = saved ? JSON.parse(saved) : [];
-            // Migration: If soundFile is missing but sound exists, map it?
-            // Or just allow mixed for now. We will use soundFile moving forward.
-            return parsed;
-        } catch (e) {
-            console.error(e);
-            return [];
-        }
-    });
+    // --- Pomodoro State ---
+    const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+    const [pomodoroPhase, setPomodoroPhase] = useState('work'); // 'work' or 'break'
+    const [pomodoroCount, setPomodoroCount] = useState(0);
 
-    const [triggeredWarnings, setTriggeredWarnings] = useState(new Set());
-    const intervalRef = useRef(null);
-    const warningsRef = useRef(warnings);
-    const endTimeRef = useRef(null);
-    const lastTickRef = useRef(timeLeft);
-    const audioInstanceRef = useRef(null);
+    // --- Refs for Worker Callback ---
+    const triggeredRef = useRef(triggeredEvents);
+    useEffect(() => { triggeredRef.current = triggeredEvents; }, [triggeredEvents]);
 
-    // Save duration whenever it changes
-    useEffect(() => {
-        localStorage.setItem('antigravity-duration', duration.toString());
-    }, [duration]);
+    const targetTimeRef = useRef(targetTime);
+    useEffect(() => { targetTimeRef.current = targetTime; }, [targetTime]);
 
-    useEffect(() => {
-        warningsRef.current = warnings;
-        localStorage.setItem('antigravity-warnings', JSON.stringify(warnings));
-    }, [warnings]);
+    const startTimeRef = useRef(null);
+    const workerRef = useRef(null);
+    const lastTickRef = useRef(0);
+    const voiceAnnouncementsRef = useRef(voiceAnnouncements);
+    useEffect(() => { voiceAnnouncementsRef.current = voiceAnnouncements; }, [voiceAnnouncements]);
+    const voiceMilestonesRef = useRef(voiceAnnouncementMilestones);
+    useEffect(() => { voiceMilestonesRef.current = voiceAnnouncementMilestones; }, [voiceAnnouncementMilestones]);
+    const voiceFinalWarningRef = useRef(voiceFinalWarning);
+    useEffect(() => { voiceFinalWarningRef.current = voiceFinalWarning; }, [voiceFinalWarning]);
+    const voiceSelectionRef = useRef(voiceSelection);
+    useEffect(() => { voiceSelectionRef.current = voiceSelection; }, [voiceSelection]);
 
-    const playSound = (path) => {
-        if (audioInstanceRef.current) {
-            audioInstanceRef.current.pause();
-            audioInstanceRef.current = null;
-        }
-        const audio = new Audio(path);
-        audio.volume = 0.5;
-        audio.play().catch(e => console.log('Audio play failed', e));
-        audioInstanceRef.current = audio;
-    };
+    // --- Helpers ---
+    const safeTriggerAdd = useCallback((id) => {
+        setTriggeredEvents(prev => {
+            const next = new Set(prev);
+            next.add(id);
+            triggeredRef.current = next;
+            return next;
+        });
+    }, []);
 
-    const triggerAlarm = (final = false, specificSoundKey = null) => {
-        console.log(final ? "FINAL ALARM" : `Warning Triggered: ${specificSoundKey}`);
+    const checkTriggers = useCallback((currentMs, prevMs, warnings) => {
+        const target = targetTimeRef.current * 1000;
+        const triggered = triggeredRef.current;
+        const soundMap = availableSounds || {};
 
-        if (final) {
-            // Randomize final alarm
-            const keys = ['final_warning_1', 'final_warning_2'];
-            const randomKey = keys[Math.floor(Math.random() * keys.length)];
-            playSound(SOUND_MAP[randomKey]);
-        } else if (specificSoundKey && SOUND_MAP[specificSoundKey]) {
-            playSound(SOUND_MAP[specificSoundKey]);
-        } else {
-            // Fallback default
-            playSound(SOUND_MAP['soft']);
-        }
-
-        setIsAlerting(true);
-        setTimeout(() => {
-            setIsAlerting(false);
-        }, 2000);
-    };
-
-    const startPause = () => {
-        if (timeLeft === 0) return;
-
-        if (isRunning) {
-            // Pause
-            setIsRunning(false);
-            clearInterval(intervalRef.current);
-        } else {
-            // Start
-            setIsRunning(true);
-            endTimeRef.current = Date.now() + timeLeft;
-            lastTickRef.current = timeLeft;
-        }
-    };
-
-    useEffect(() => {
-        if (isRunning) {
-            intervalRef.current = setInterval(() => {
-                const now = Date.now();
-                const remaining = Math.max(0, endTimeRef.current - now);
-                const prevMetric = lastTickRef.current;
-
-                if (remaining === 0) {
-                    clearInterval(intervalRef.current);
-                    setIsRunning(false);
-                    setTimeLeft(0);
-                    triggerAlarm(true);
-                    return;
-                }
-
-                // Check warnings
-                warningsRef.current.forEach(warning => {
-                    // Logic: If we were previously ABOVE the warning time, and now we are ON or BELOW it
-                    if (prevMetric > warning.time && remaining <= warning.time && !triggeredWarnings.has(warning.id)) {
-                        triggerAlarm(false, warning.soundFile);
-                        setTriggeredWarnings(prevSet => new Set(prevSet).add(warning.id));
-                    }
-                });
-
-                lastTickRef.current = remaining;
-                setTimeLeft(remaining);
-            }, 20);
-        } else {
-            clearInterval(intervalRef.current);
-        }
-        return () => clearInterval(intervalRef.current);
-    }, [isRunning, triggeredWarnings]);
-
-    const reset = () => {
-        setIsRunning(false);
-        setTimeLeft(duration);
-        setTriggeredWarnings(new Set());
-        setIsAlerting(false);
-        endTimeRef.current = null;
-        if (audioInstanceRef.current) {
-            audioInstanceRef.current.pause();
-            audioInstanceRef.current = null;
-        }
-    };
-
-    const setTotalDuration = (minutes) => {
-        const ms = minutes * 60 * 1000;
-        setDuration(ms);
-        setTimeLeft(ms);
-        setTriggeredWarnings(new Set());
-        setIsRunning(false);
-        endTimeRef.current = null;
-    };
-
-    // Warning management
-    const addWarning = (minutes, soundKey = 'soft') => {
-        const timeInMs = minutes * 60 * 1000;
-        if (warnings.some(w => w.time === timeInMs)) return;
-        const newWarning = { id: Date.now().toString(), time: timeInMs, minutes, soundFile: soundKey };
-        setWarnings(prev => [...prev, newWarning]);
-    };
-
-    const updateWarning = (id, updates) => {
-        setWarnings(prev => prev.map(w => {
-            if (w.id !== id) return w;
-            const newW = { ...w, ...updates };
-            // If minutes changed, recalculate time
-            if (updates.minutes !== undefined) {
-                newW.time = updates.minutes * 60 * 1000;
+        // 1. Check Intermediate Warnings
+        warnings.forEach(w => {
+            const wTime = w.triggerTime * 1000;
+            if ((prevMs < wTime && currentMs >= wTime) && !triggered.has(w.id)) {
+                const src = soundMap[w.soundKey] || WARNING_SOUNDS[w.soundKey];
+                if (src) playSound(src);
+                vibrate([100]);
+                safeTriggerAdd(w.id);
             }
-            return newW;
-        }));
+        });
+
+        // 2. Check Final Target
+        if (target > 0) {
+            if ((prevMs < target && currentMs >= target) && !triggered.has('FINAL')) {
+                playSound(finalSound);
+                vibrate([200, 100, 200]);
+                safeTriggerAdd('FINAL');
+
+                // Pomodoro auto-cycle logic
+                if (pomodoroEnabled) {
+                    setTimeout(() => {
+                        if (pomodoroPhase === 'work') {
+                            if (onSessionComplete) {
+                                onSessionComplete({
+                                    duration: pomodoroWorkTime * 1000,
+                                    mode: 'pomodoro',
+                                    timestamp: Date.now()
+                                });
+                            }
+                            setPomodoroPhase('break');
+                            setTargetTime(pomodoroBreakTime);
+                            setPomodoroCount(c => c + 1);
+                            resetForCycle();
+                            showToast('Great work! Take a 5 min break 🎉', 'success');
+                        } else {
+                            setPomodoroPhase('work');
+                            setTargetTime(pomodoroWorkTime);
+                            resetForCycle();
+                            showToast('Break over! Back to work 💪', 'info');
+                        }
+                    }, 1000);
+                }
+            }
+        }
+
+        // 3. Spoken Announcements (Milestone-based)
+        if (voiceAnnouncementsRef.current && 'speechSynthesis' in window && timerMode === 'countdown') {
+            const remainingMs = Math.max(0, targetTimeRef.current * 1000 - currentMs);
+            const remainingSec = Math.floor(remainingMs / 1000);
+            const prevRemainingSec = Math.floor(Math.max(0, targetTimeRef.current * 1000 - prevMs) / 1000);
+
+            // Check milestones
+            const milestones = voiceMilestonesRef.current || [];
+            for (const milestone of milestones) {
+                if (remainingSec <= milestone && prevRemainingSec > milestone) {
+                    const mins = Math.floor(milestone / 60);
+                    const secs = milestone % 60;
+                    let text = "";
+                    if (mins > 0 && secs > 0) text = `${mins} minute${mins > 1 ? 's' : ''} and ${secs} seconds remaining`;
+                    else if (mins > 0) text = `${mins} minute${mins > 1 ? 's' : ''} remaining`;
+                    else text = `${secs} seconds remaining`;
+
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    const voices = window.speechSynthesis.getVoices();
+                    const selectedVoice = voices.find(v => v.name === voiceSelectionRef.current);
+                    if (selectedVoice) utterance.voice = selectedVoice;
+                    utterance.volume = volume / 100;
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                    break; // Only announce one milestone per tick
+                }
+            }
+
+            // Final warning (special announcement)
+            const finalWarning = voiceFinalWarningRef.current || 30;
+            if (remainingSec <= finalWarning && prevRemainingSec > finalWarning) {
+                const text = `Warning! ${finalWarning} seconds remaining!`;
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = window.speechSynthesis.getVoices();
+                const selectedVoice = voices.find(v => v.name === voiceSelectionRef.current);
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.volume = volume / 100;
+                utterance.rate = 1.0; // Slightly faster for urgency
+                utterance.pitch = 1.1; // Slightly higher pitch for urgency
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    }, [availableSounds, WARNING_SOUNDS, playSound, vibrate, safeTriggerAdd, finalSound, pomodoroEnabled, pomodoroPhase, pomodoroBreakTime, pomodoroWorkTime, showToast, volume, timerMode]);
+
+    const resetForCycle = () => {
+        setElapsedTime(0);
+        lastTickRef.current = 0;
+        setTriggeredEvents(new Set());
+        triggeredRef.current = new Set();
+        startTimeRef.current = Date.now();
     };
 
-    const removeWarning = (id) => {
-        setWarnings(prev => prev.filter(w => w.id !== id));
-    };
+    // --- Worker Lifecycle ---
+    useEffect(() => {
+        const WorkerFactory = new URL('./../timer.worker.js', import.meta.url);
+        const worker = new Worker(WorkerFactory);
+        workerRef.current = worker;
 
-    const formatTime = (ms) => {
-        if (ms < 0) ms = 0;
-        const minutes = Math.floor((ms / 60000) % 60);
-        const seconds = Math.floor((ms / 1000) % 60);
-        const centiseconds = Math.floor((ms / 10) % 100);
+        return () => worker.terminate();
+    }, []);
 
-        return {
-            minutes: minutes.toString().padStart(2, '0'),
-            seconds: seconds.toString().padStart(2, '0'),
-            centiseconds: centiseconds.toString().padStart(2, '0')
+    // Warnings Ref for worker callback
+    const warningsRef = useRef([]);
+    const updateWarnings = (ws) => { warningsRef.current = ws; };
+
+    useEffect(() => {
+        if (workerRef.current) {
+            workerRef.current.onmessage = (e) => {
+                if (e.data === 'TICK') {
+                    if (!startTimeRef.current) return;
+                    const now = Date.now();
+                    const currentElapsed = now - startTimeRef.current;
+                    const prevElapsed = lastTickRef.current;
+                    setElapsedTime(currentElapsed);
+                    checkTriggers(currentElapsed, prevElapsed, warningsRef.current);
+                    lastTickRef.current = currentElapsed;
+                }
+            };
+        }
+    }, [checkTriggers]);
+
+    useEffect(() => {
+        if (isRunning) {
+            if (!startTimeRef.current) {
+                startTimeRef.current = Date.now() - elapsedTime;
+            }
+            workerRef.current.postMessage('START');
+        } else {
+            workerRef.current.postMessage('STOP');
+            startTimeRef.current = null;
+        }
+    }, [isRunning, elapsedTime]);
+
+    // --- Actions ---
+    const toggleTimer = useCallback(() => setIsRunning(v => !v), []);
+
+    const resetTimer = useCallback(() => {
+        if (elapsedTime > 0 || laps.length > 0) {
+            setLastResetState({
+                elapsedTime,
+                laps: [...laps],
+                triggeredEvents: new Set(triggeredEvents)
+            });
+        }
+        setIsRunning(false);
+        setElapsedTime(0);
+        lastTickRef.current = 0;
+        setTriggeredEvents(new Set());
+        triggeredRef.current = new Set();
+        setLaps([]);
+        if (workerRef.current) workerRef.current.postMessage('STOP');
+        showToast('Timer reset', 'info', 5000);
+    }, [elapsedTime, laps, triggeredEvents, showToast]);
+
+    const undoReset = useCallback(() => {
+        if (!lastResetState) return;
+        setElapsedTime(lastResetState.elapsedTime);
+        setLaps(lastResetState.laps);
+        setTriggeredEvents(lastResetState.triggeredEvents);
+        triggeredRef.current = lastResetState.triggeredEvents;
+        lastTickRef.current = lastResetState.elapsedTime;
+        setLastResetState(null);
+        showToast('Reset undone', 'success', 2000);
+    }, [lastResetState, showToast]);
+
+    const handleLap = useCallback(() => {
+        if (!isRunning) return;
+        const total = elapsedTime;
+        const prevLapTotal = laps.length > 0 ? laps[0].time : 0;
+        const split = total - prevLapTotal;
+        const newLap = {
+            id: Date.now(),
+            number: laps.length + 1,
+            time: total,
+            split: split
         };
-    };
-
-    const progress = duration > 0 ? timeLeft / duration : 0;
+        setLaps(prev => [newLap, ...prev]);
+        showToast(`Lap ${newLap.number}: ${(split / 1000).toFixed(1)}s`, 'info', 1500);
+    }, [isRunning, elapsedTime, laps, showToast]);
 
     return {
-        timeLeft,
-        duration,
+        elapsedTime,
         isRunning,
-        isAlerting,
-        progress,
-        startPause,
-        reset,
-        setTotalDuration,
-        formatTime,
-        warnings,
-        addWarning,
-        updateWarning,
-        removeWarning,
-        SOUND_MAP
+        timerMode,
+        setTimerMode,
+        targetTime,
+        setTargetTime,
+        triggeredEvents,
+        laps,
+        setLaps,
+        lastResetState,
+        pomodoroEnabled,
+        setPomodoroEnabled,
+        pomodoroPhase,
+        pomodoroCount,
+        setPomodoroCount,
+        toggleTimer,
+        resetTimer,
+        undoReset,
+        handleLap,
+        updateWarnings
     };
 };

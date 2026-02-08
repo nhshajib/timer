@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Plus, X, Upload, Trash2, Clock, Bell, Music, Settings as SettingsIcon, Palette, RotateCcw } from 'lucide-react';
+import { Play, Plus, X, Upload, Trash2, Clock, Bell, Music, Settings as SettingsIcon, Palette, RotateCcw, BarChart2 } from 'lucide-react';
+import StatsDashboard from './StatsDashboard';
 
 const SettingsOverlay = ({
     isOpen,
@@ -30,7 +31,19 @@ const SettingsOverlay = ({
     setClockScale,
     colorThresholds,
     setColorThresholds,
-    onResetVisuals
+    onResetVisuals,
+    theme,
+    setTheme,
+    sessionHistory,
+    pomodoroCount,
+    voiceAnnouncements,
+    setVoiceAnnouncements,
+    voiceAnnouncementMilestones,
+    setVoiceAnnouncementMilestones,
+    voiceFinalWarning,
+    setVoiceFinalWarning,
+    voiceSelection,
+    setVoiceSelection
 }) => {
     const [activeTab, setActiveTab] = useState('timer');
     const [newMin, setNewMin] = useState(1);
@@ -42,6 +55,25 @@ const SettingsOverlay = ({
     const [file, setFile] = useState(null);
     const [customFilename, setCustomFilename] = useState("");
     const [uploadStatus, setUploadStatus] = useState("");
+
+    // Voice Selection State
+    const [availableVoices, setAvailableVoices] = useState([]);
+    const [tempVoiceSelection, setTempVoiceSelection] = useState(voiceSelection);
+
+    // Load available voices
+    React.useEffect(() => {
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            setAvailableVoices(voices);
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }, []);
+
+    // Sync temp selection with prop
+    React.useEffect(() => {
+        setTempVoiceSelection(voiceSelection);
+    }, [voiceSelection]);
 
     if (!isOpen) return null;
 
@@ -96,7 +128,8 @@ const SettingsOverlay = ({
         { id: 'alerts', label: 'Alerts', icon: Bell },
         { id: 'sounds', label: 'Sounds', icon: Music },
         { id: 'visuals', label: 'Visuals', icon: Palette },
-        { id: 'prefs', label: 'Preferences', icon: SettingsIcon }
+        { id: 'stats', label: 'Stats', icon: BarChart2 },
+        { id: 'preferences', label: 'Preferences', icon: SettingsIcon }
     ];
 
     const setQuickPreset = (minutes) => {
@@ -132,8 +165,12 @@ const SettingsOverlay = ({
                     <div style={{
                         display: 'flex',
                         borderBottom: '1px solid rgba(255,255,255,0.1)',
-                        padding: '0 20px',
-                        gap: '8px'
+                        padding: '0 10px',
+                        gap: '4px',
+                        overflowX: 'auto',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        WebkitOverflowScrolling: 'touch'
                     }}>
                         {tabs.map(tab => {
                             const Icon = tab.icon;
@@ -146,15 +183,17 @@ const SettingsOverlay = ({
                                         background: 'transparent',
                                         border: 'none',
                                         color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-                                        padding: '12px 16px',
+                                        padding: '12px 14px',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
-                                        fontSize: '0.9rem',
+                                        fontSize: '0.85rem',
+                                        whiteSpace: 'nowrap',
                                         fontWeight: isActive ? 600 : 400,
                                         borderBottom: isActive ? '2px solid #60a5fa' : '2px solid transparent',
                                         transition: 'all 0.2s',
+                                        flexShrink: 0,
                                         marginBottom: '-1px'
                                     }}
                                     onMouseEnter={(e) => {
@@ -372,31 +411,268 @@ const SettingsOverlay = ({
                                             ))}
                                         </div>
 
-                                        {/* Upload Section - Only in development */}
-                                        {import.meta.env.DEV && (
-                                            <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                                                <label className="text-label" style={{ display: 'block', marginBottom: '12px', color: '#fca5a5' }}>Admin: Import Audio</label>
-                                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '12px' }}>
-                                                    <input type="password" placeholder="Admin Password" value={adminPass} onChange={e => setAdminPass(e.target.value)}
-                                                        className="input-modern" style={{ marginBottom: '8px', fontSize: '0.9rem' }} />
-                                                    <input type="text" placeholder="Filename (e.g., my_sound.mp3)" value={customFilename} onChange={e => setCustomFilename(e.target.value)}
-                                                        className="input-modern" style={{ marginBottom: '8px', fontSize: '0.9rem' }} />
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <label className="input-modern" style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                                                            <Upload size={16} />
-                                                            <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                {file ? file.name : "Select Audio..."}
-                                                            </span>
-                                                            <input type="file" accept="audio/*" hidden onChange={e => setFile(e.target.files[0])} />
-                                                        </label>
-                                                        <button onClick={handleUpload} className="btn-circle small" style={{ borderRadius: '12px', width: 'auto', padding: '0 16px', background: 'var(--accent-primary)', color: 'white' }}>
-                                                            Upload
-                                                        </button>
+                                        {/* Voice Announcements Section */}
+                                        <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                                            <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>Voice Announcements</label>
+                                            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
+                                                {/* Enable/Disable Toggle */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white' }}>Enable Voice Feedback</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>Spoken updates at key moments</div>
                                                     </div>
-                                                    {uploadStatus && <div style={{ fontSize: '0.8rem', marginTop: '8px', color: uploadStatus.includes('Success') ? '#4ade80' : '#f87171' }}>{uploadStatus}</div>}
+                                                    <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={voiceAnnouncements}
+                                                            onChange={(e) => setVoiceAnnouncements(e.target.checked)}
+                                                            style={{ opacity: 0, width: 0, height: 0 }}
+                                                        />
+                                                        <span style={{
+                                                            position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
+                                                            backgroundColor: voiceAnnouncements ? '#60a5fa' : 'rgba(255,255,255,0.2)',
+                                                            transition: '0.3s', borderRadius: '24px'
+                                                        }}>
+                                                            <span style={{
+                                                                position: 'absolute', height: '18px', width: '18px',
+                                                                left: voiceAnnouncements ? '28px' : '3px', bottom: '3px',
+                                                                backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
+                                                            }} />
+                                                        </span>
+                                                    </label>
                                                 </div>
+
+                                                {voiceAnnouncements && (
+                                                    <>
+                                                        {/* Quick Presets */}
+                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Quick Presets</div>
+                                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                                <button
+                                                                    onClick={() => setVoiceAnnouncementMilestones([600, 300, 60])}
+                                                                    style={{
+                                                                        padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(96, 165, 250, 0.15)',
+                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '6px',
+                                                                        color: '#60a5fa', cursor: 'pointer', fontWeight: 500
+                                                                    }}
+                                                                >
+                                                                    Standard (10m, 5m, 1m)
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setVoiceAnnouncementMilestones([900, 600, 300, 60])}
+                                                                    style={{
+                                                                        padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(96, 165, 250, 0.15)',
+                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '6px',
+                                                                        color: '#60a5fa', cursor: 'pointer', fontWeight: 500
+                                                                    }}
+                                                                >
+                                                                    Detailed (15m, 10m, 5m, 1m)
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setVoiceAnnouncementMilestones([300, 60])}
+                                                                    style={{
+                                                                        padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(96, 165, 250, 0.15)',
+                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '6px',
+                                                                        color: '#60a5fa', cursor: 'pointer', fontWeight: 500
+                                                                    }}
+                                                                >
+                                                                    Minimal (5m, 1m)
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Announcement Milestones */}
+                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Announce When Remaining Time Reaches</div>
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                                                                {voiceAnnouncementMilestones.sort((a, b) => b - a).map((seconds, idx) => {
+                                                                    const mins = Math.floor(seconds / 60);
+                                                                    const secs = seconds % 60;
+                                                                    const label = mins > 0 ? (secs > 0 ? `${mins}m ${secs}s` : `${mins}m`) : `${secs}s`;
+                                                                    return (
+                                                                        <div
+                                                                            key={idx}
+                                                                            style={{
+                                                                                display: 'flex', alignItems: 'center', gap: '6px',
+                                                                                padding: '6px 10px', background: 'rgba(96, 165, 250, 0.2)',
+                                                                                border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '8px',
+                                                                                fontSize: '0.8rem', fontWeight: 600, color: '#60a5fa'
+                                                                            }}
+                                                                        >
+                                                                            {label}
+                                                                            <X
+                                                                                size={14}
+                                                                                style={{ cursor: 'pointer', opacity: 0.7 }}
+                                                                                onClick={() => {
+                                                                                    setVoiceAnnouncementMilestones(voiceAnnouncementMilestones.filter((_, i) => i !== idx));
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            {/* Add Custom Milestone */}
+                                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                <input
+                                                                    type="number"
+                                                                    min="5"
+                                                                    max="3600"
+                                                                    placeholder="Seconds"
+                                                                    id="newMilestone"
+                                                                    style={{
+                                                                        flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)',
+                                                                        borderRadius: '8px', color: 'white', padding: '6px 10px', fontSize: '0.85rem'
+                                                                    }}
+                                                                />
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const input = document.getElementById('newMilestone');
+                                                                        const value = parseInt(input.value);
+                                                                        if (value && value >= 5 && value <= 3600 && !voiceAnnouncementMilestones.includes(value)) {
+                                                                            setVoiceAnnouncementMilestones([...voiceAnnouncementMilestones, value]);
+                                                                            input.value = '';
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '6px 12px', background: 'rgba(96, 165, 250, 0.2)',
+                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '8px',
+                                                                        color: '#60a5fa', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                                                                        display: 'flex', alignItems: 'center', gap: '4px'
+                                                                    }}
+                                                                >
+                                                                    <Plus size={14} />
+                                                                    Add
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Final Warning */}
+                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Final Warning</div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>Special announcement when time is almost up</div>
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                {[30, 15, 10, 5].map(sec => (
+                                                                    <button
+                                                                        key={sec}
+                                                                        onClick={() => setVoiceFinalWarning(sec)}
+                                                                        style={{
+                                                                            flex: 1, padding: '8px', background: voiceFinalWarning === sec ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.05)',
+                                                                            border: `1px solid ${voiceFinalWarning === sec ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+                                                                            borderRadius: '8px', color: voiceFinalWarning === sec ? '#ef4444' : 'rgba(255,255,255,0.7)',
+                                                                            cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                                                                        }}
+                                                                    >
+                                                                        {sec}s
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Voice Selection */}
+                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Voice Character</div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '12px' }}>Choose the voice that announces your milestones</div>
+                                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                                                <select
+                                                                    value={tempVoiceSelection}
+                                                                    onChange={(e) => setTempVoiceSelection(e.target.value)}
+                                                                    style={{
+                                                                        flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)',
+                                                                        borderRadius: '8px', color: 'white', padding: '8px 12px', fontSize: '0.85rem',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    <option value="">Default System Voice</option>
+                                                                    {availableVoices.map((voice, idx) => {
+                                                                        // Categorize voices
+                                                                        let category = '';
+                                                                        const name = voice.name.toLowerCase();
+                                                                        if (name.includes('female') || name.includes('woman') || name.includes('zira') || name.includes('samantha')) {
+                                                                            category = '👩 ';
+                                                                        } else if (name.includes('male') || name.includes('man') || name.includes('david') || name.includes('daniel')) {
+                                                                            category = '👨 ';
+                                                                        }
+
+                                                                        return (
+                                                                            <option key={idx} value={voice.name}>
+                                                                                {category}{voice.name} ({voice.lang})
+                                                                            </option>
+                                                                        );
+                                                                    })}
+                                                                </select>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const voice = availableVoices.find(v => v.name === tempVoiceSelection);
+                                                                        const utterance = new SpeechSynthesisUtterance("5 minutes remaining");
+                                                                        if (voice) utterance.voice = voice;
+                                                                        utterance.volume = volume / 100;
+                                                                        utterance.rate = 0.9;
+                                                                        utterance.pitch = 1.0;
+                                                                        window.speechSynthesis.speak(utterance);
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '8px 12px', background: 'rgba(96, 165, 250, 0.2)',
+                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '8px',
+                                                                        color: '#60a5fa', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                                                                        display: 'flex', alignItems: 'center', gap: '4px'
+                                                                    }}
+                                                                >
+                                                                    <Play size={14} />
+                                                                    Preview
+                                                                </button>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setVoiceSelection(tempVoiceSelection)}
+                                                                style={{
+                                                                    width: '100%', padding: '8px', background: 'rgba(34, 197, 94, 0.2)',
+                                                                    border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '8px',
+                                                                    color: '#22c55e', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                                                                }}
+                                                            >
+                                                                ✓ Save Voice Selection
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Test Voice */}
+                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Test Current Settings</div>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const voice = availableVoices.find(v => v.name === voiceSelection);
+                                                                    const text = "5 minutes remaining";
+                                                                    const utterance = new SpeechSynthesisUtterance(text);
+                                                                    if (voice) utterance.voice = voice;
+                                                                    utterance.volume = volume / 100;
+                                                                    utterance.rate = 0.9;
+                                                                    utterance.pitch = 1.0;
+                                                                    window.speechSynthesis.speak(utterance);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%', padding: '10px', background: 'rgba(96, 165, 250, 0.15)',
+                                                                    border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '8px',
+                                                                    color: '#60a5fa', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                                                }}
+                                                            >
+                                                                <Play size={14} />
+                                                                Test Voice Announcement
+                                                            </button>
+                                                        </div>
+
+                                                        {/* How It Works */}
+                                                        <div style={{ background: 'rgba(96, 165, 250, 0.05)', padding: '12px', borderRadius: '8px' }}>
+                                                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#60a5fa', marginBottom: '6px' }}>How It Works</div>
+                                                            <ul style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', paddingLeft: '20px', margin: 0, lineHeight: '1.6' }}>
+                                                                <li>Announces when remaining time reaches each milestone</li>
+                                                                <li>Final warning plays at your chosen threshold</li>
+                                                                <li>Uses natural language (e.g., "5 minutes" instead of "300 seconds")</li>
+                                                                <li>Volume follows your master volume setting</li>
+                                                            </ul>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 )}
 
@@ -548,8 +824,16 @@ const SettingsOverlay = ({
                                     </div>
                                 )}
 
+                                {/* Stats Tab */}
+                                {activeTab === 'stats' && (
+                                    <StatsDashboard
+                                        sessionHistory={sessionHistory}
+                                        pomodoroCount={pomodoroCount}
+                                    />
+                                )}
+
                                 {/* Preferences Tab */}
-                                {activeTab === 'prefs' && (
+                                {activeTab === 'preferences' && (
                                     <div>
                                         <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>App Preferences</label>
 
@@ -575,7 +859,7 @@ const SettingsOverlay = ({
                                                 </span>
                                             </div>
                                             <button
-                                                onClick={() => playSound(finalSound, false)}
+                                                onClick={() => playSound("Single Beep")}
                                                 className="btn-circle small"
                                                 style={{
                                                     marginTop: '12px',
@@ -634,24 +918,39 @@ const SettingsOverlay = ({
                                             </div>
                                         </div>
 
+                                        {/* Appearance & Accessibility */}
                                         <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '8px' }}>Keyboard Shortcuts</div>
-                                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-                                                <div><kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>Space</kbd> - Play/Pause</div>
-                                                <div><kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>R</kbd> - Reset</div>
-                                                <div><kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>L</kbd> - Lap</div>
-                                                <div><kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>S</kbd> - Settings</div>
-                                                <div><kbd style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>1-5</kbd> - Quick Presets</div>
-                                            </div>
-                                        </div>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Appearance & Accessibility</div>
 
-                                        {/* Accessibility Controls */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Accessibility</div>
+                                            {/* Theme Toggle */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Light Mode</span>
+                                                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={theme === 'light'}
+                                                        onChange={(e) => setTheme(e.target.checked ? 'light' : 'dark')}
+                                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                                    />
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        cursor: 'pointer',
+                                                        top: 0, bottom: 0, left: 0, right: 0,
+                                                        backgroundColor: theme === 'light' ? '#60a5fa' : 'rgba(255,255,255,0.2)',
+                                                        transition: '0.3s', borderRadius: '24px'
+                                                    }}>
+                                                        <span style={{
+                                                            position: 'absolute', height: '18px', width: '18px',
+                                                            left: theme === 'light' ? '28px' : '3px', bottom: '3px',
+                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
+                                                        }} />
+                                                    </span>
+                                                </label>
+                                            </div>
 
                                             {/* High Contrast */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>High Contrast Mode</span>
+                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>High Contrast</span>
                                                 <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
                                                     <input
                                                         type="checkbox"
@@ -660,26 +959,14 @@ const SettingsOverlay = ({
                                                         style={{ opacity: 0, width: 0, height: 0 }}
                                                     />
                                                     <span style={{
-                                                        position: 'absolute',
-                                                        cursor: 'pointer',
-                                                        top: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: 0,
+                                                        position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
                                                         backgroundColor: highContrast ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s',
-                                                        borderRadius: '24px'
+                                                        transition: '0.3s', borderRadius: '24px'
                                                     }}>
                                                         <span style={{
-                                                            position: 'absolute',
-                                                            content: '',
-                                                            height: '18px',
-                                                            width: '18px',
-                                                            left: highContrast ? '28px' : '3px',
-                                                            bottom: '3px',
-                                                            backgroundColor: 'white',
-                                                            transition: '0.3s',
-                                                            borderRadius: '50%'
+                                                            position: 'absolute', height: '18px', width: '18px',
+                                                            left: highContrast ? '28px' : '3px', bottom: '3px',
+                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
                                                         }} />
                                                     </span>
                                                 </label>
@@ -696,26 +983,14 @@ const SettingsOverlay = ({
                                                         style={{ opacity: 0, width: 0, height: 0 }}
                                                     />
                                                     <span style={{
-                                                        position: 'absolute',
-                                                        cursor: 'pointer',
-                                                        top: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: 0,
+                                                        position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
                                                         backgroundColor: reducedMotion ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s',
-                                                        borderRadius: '24px'
+                                                        transition: '0.3s', borderRadius: '24px'
                                                     }}>
                                                         <span style={{
-                                                            position: 'absolute',
-                                                            content: '',
-                                                            height: '18px',
-                                                            width: '18px',
-                                                            left: reducedMotion ? '28px' : '3px',
-                                                            bottom: '3px',
-                                                            backgroundColor: 'white',
-                                                            transition: '0.3s',
-                                                            borderRadius: '50%'
+                                                            position: 'absolute', height: '18px', width: '18px',
+                                                            left: reducedMotion ? '28px' : '3px', bottom: '3px',
+                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
                                                         }} />
                                                     </span>
                                                 </label>
@@ -723,7 +998,7 @@ const SettingsOverlay = ({
 
                                             {/* Vibration */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Vibration Alerts</span>
+                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Vibration</span>
                                                 <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
                                                     <input
                                                         type="checkbox"
@@ -732,30 +1007,20 @@ const SettingsOverlay = ({
                                                         style={{ opacity: 0, width: 0, height: 0 }}
                                                     />
                                                     <span style={{
-                                                        position: 'absolute',
-                                                        cursor: 'pointer',
-                                                        top: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: 0,
+                                                        position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
                                                         backgroundColor: vibrationEnabled ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s',
-                                                        borderRadius: '24px'
+                                                        transition: '0.3s', borderRadius: '24px'
                                                     }}>
                                                         <span style={{
-                                                            position: 'absolute',
-                                                            content: '',
-                                                            height: '18px',
-                                                            width: '18px',
-                                                            left: vibrationEnabled ? '28px' : '3px',
-                                                            bottom: '3px',
-                                                            backgroundColor: 'white',
-                                                            transition: '0.3s',
-                                                            borderRadius: '50%'
+                                                            position: 'absolute', height: '18px', width: '18px',
+                                                            left: vibrationEnabled ? '28px' : '3px', bottom: '3px',
+                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
                                                         }} />
                                                     </span>
                                                 </label>
                                             </div>
+
+
                                         </div>
 
                                         {/* Mobile Features */}
@@ -763,26 +1028,15 @@ const SettingsOverlay = ({
                                             <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Mobile Features</div>
                                             <button
                                                 onClick={toggleFullscreen}
-                                                className="btn-circle small"
                                                 style={{
-                                                    background: 'rgba(139, 92, 246, 0.15)',
-                                                    color: '#a78bfa',
-                                                    borderRadius: '12px',
-                                                    width: '100%',
-                                                    padding: '8px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '8px',
-                                                    marginBottom: '8px'
+                                                    width: '100%', padding: '10px', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)',
+                                                    borderRadius: '12px', color: '#a78bfa', cursor: 'pointer', marginBottom: '8px', fontSize: '0.85rem'
                                                 }}
                                             >
-                                                <span style={{ fontSize: '0.85rem' }}>
-                                                    {isFullscreen ? '✕ Exit Fullscreen' : '⛶ Enter Fullscreen'}
-                                                </span>
+                                                {isFullscreen ? '✕ Exit Fullscreen' : '⛶ Enter Fullscreen'}
                                             </button>
-                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
-                                                Screen wake lock automatically activates when timer is running
+                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+                                                Screen wake lock is managed automatically
                                             </div>
                                         </div>
                                     </div>
@@ -791,8 +1045,18 @@ const SettingsOverlay = ({
                         </AnimatePresence>
                     </div>
 
+                    {/* Footer */}
                     <div style={{ padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                        <button className="btn-block" onClick={onClose}>Done</button>
+                        <button
+                            className="btn-circle"
+                            onClick={onClose}
+                            style={{
+                                width: '100%', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '12px', padding: '12px', fontSize: '1rem', fontWeight: 700, cursor: 'pointer'
+                            }}
+                        >
+                            Done
+                        </button>
                     </div>
                 </motion.div>
             </motion.div>
