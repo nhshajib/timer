@@ -1,7 +1,42 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Plus, X, Upload, Trash2, Clock, Bell, Music, Settings as SettingsIcon, Palette, RotateCcw, BarChart2 } from 'lucide-react';
+import { Play, Plus, X, Upload, Trash2, Clock, Bell, Music, Settings as SettingsIcon, Palette, RotateCcw, BarChart2, Sun, Moon, Volume2, Maximize, Minimize, Smartphone } from 'lucide-react';
 import StatsDashboard from './StatsDashboard';
+
+const Toggle = ({ checked, onChange, color = 'var(--accent-primary)' }) => (
+    <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', flexShrink: 0 }}>
+        <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            style={{ opacity: 0, width: 0, height: 0 }}
+        />
+        <span style={{
+            position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
+            backgroundColor: checked ? color : 'rgba(255,255,255,0.12)',
+            transition: '0.3s', borderRadius: '22px',
+        }}>
+            <span style={{
+                position: 'absolute', height: '16px', width: '16px',
+                left: checked ? '24px' : '3px', bottom: '3px',
+                backgroundColor: 'white', transition: '0.3s', borderRadius: '50%',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+        </span>
+    </label>
+);
+
+const SectionCard = ({ children, style }) => (
+    <div style={{
+        padding: '14px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: 'var(--radius-md)',
+        ...style,
+    }}>
+        {children}
+    </div>
+);
 
 const SettingsOverlay = ({
     isOpen,
@@ -50,17 +85,14 @@ const SettingsOverlay = ({
     const [newSec, setNewSec] = useState(0);
     const [newSound, setNewSound] = useState("Single Beep");
 
-    // Admin Upload State
     const [adminPass, setAdminPass] = useState("");
     const [file, setFile] = useState(null);
     const [customFilename, setCustomFilename] = useState("");
     const [uploadStatus, setUploadStatus] = useState("");
 
-    // Voice Selection State
     const [availableVoices, setAvailableVoices] = useState([]);
     const [tempVoiceSelection, setTempVoiceSelection] = useState(voiceSelection);
 
-    // Load available voices
     React.useEffect(() => {
         const loadVoices = () => {
             const voices = window.speechSynthesis.getVoices();
@@ -70,13 +102,11 @@ const SettingsOverlay = ({
         window.speechSynthesis.onvoiceschanged = loadVoices;
     }, []);
 
-    // Sync temp selection with prop
     React.useEffect(() => {
         setTempVoiceSelection(voiceSelection);
     }, [voiceSelection]);
 
     if (!isOpen) return null;
-
 
     const handleUpload = async () => {
         if (!file) return setUploadStatus("No file selected.");
@@ -95,7 +125,7 @@ const SettingsOverlay = ({
             });
             const data = await res.json();
             if (res.ok) {
-                setUploadStatus("✓ Success!");
+                setUploadStatus("Success!");
                 onUpload(data.filename);
                 setFile(null);
                 setCustomFilename("");
@@ -104,10 +134,9 @@ const SettingsOverlay = ({
                 setUploadStatus(data.error || "Upload failed");
             }
         } catch (e) {
-            setUploadStatus("Error: Server offline? Make sure 'npm run start:server' is running.");
+            setUploadStatus("Error: Server offline?");
         }
     };
-
 
     const addWarning = () => {
         const totalSec = (parseInt(newMin) || 0) * 60 + (parseInt(newSec) || 0);
@@ -129,12 +158,14 @@ const SettingsOverlay = ({
         { id: 'sounds', label: 'Sounds', icon: Music },
         { id: 'visuals', label: 'Visuals', icon: Palette },
         { id: 'stats', label: 'Stats', icon: BarChart2 },
-        { id: 'preferences', label: 'Preferences', icon: SettingsIcon }
+        { id: 'preferences', label: 'Prefs', icon: SettingsIcon }
     ];
 
     const setQuickPreset = (minutes) => {
         setTargetTime(minutes * 60);
     };
+
+    const accentColor = 'var(--accent-primary)';
 
     return (
         <AnimatePresence>
@@ -146,31 +177,45 @@ const SettingsOverlay = ({
                 onClick={onClose}
             >
                 <motion.div
-                    initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                    initial={{ scale: 0.95, y: 16, opacity: 0 }}
                     animate={{ scale: 1, y: 0, opacity: 1 }}
-                    exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                    exit={{ scale: 0.95, y: 16, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     className="modal-card"
                     onClick={e => e.stopPropagation()}
-                    style={{ maxWidth: '600px', width: '90%' }}
+                    style={{ maxWidth: '560px', width: '92%' }}
                 >
-                    {/* Header */}
                     <div className="modal-header">
-                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Settings</h2>
-                        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
-                            <X size={24} />
+                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.01em' }}>Settings</h2>
+                        <button onClick={onClose} style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                        }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                        >
+                            <X size={18} />
                         </button>
                     </div>
 
-                    {/* Tab Bar */}
                     <div style={{
                         display: 'flex',
-                        borderBottom: '1px solid rgba(255,255,255,0.1)',
-                        padding: '0 10px',
-                        gap: '4px',
+                        borderBottom: '1px solid var(--glass-border)',
+                        padding: '0 12px',
+                        gap: '2px',
                         overflowX: 'auto',
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none',
-                        WebkitOverflowScrolling: 'touch'
+                        WebkitOverflowScrolling: 'touch',
                     }}>
                         {tabs.map(tab => {
                             const Icon = tab.icon;
@@ -182,384 +227,314 @@ const SettingsOverlay = ({
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-                                        padding: '12px 14px',
+                                        color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                        padding: '10px 12px',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px',
-                                        fontSize: '0.85rem',
+                                        gap: '5px',
+                                        fontSize: '0.78rem',
                                         whiteSpace: 'nowrap',
-                                        fontWeight: isActive ? 600 : 400,
-                                        borderBottom: isActive ? '2px solid #60a5fa' : '2px solid transparent',
+                                        fontWeight: isActive ? 600 : 500,
+                                        borderBottom: isActive ? '2px solid var(--accent-primary)' : '2px solid transparent',
                                         transition: 'all 0.2s',
                                         flexShrink: 0,
-                                        marginBottom: '-1px'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!isActive) e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!isActive) e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                                        marginBottom: '-1px',
+                                        fontFamily: 'inherit',
                                     }}
                                 >
-                                    <Icon size={16} />
+                                    <Icon size={14} />
                                     <span>{tab.label}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    {/* Tab Content */}
-                    <div className="modal-content" style={{ minHeight: '300px' }}>
+                    <div className="modal-content" style={{ minHeight: '280px' }}>
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
-                                initial={{ opacity: 0, x: 20 }}
+                                initial={{ opacity: 0, x: 16 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.2 }}
+                                exit={{ opacity: 0, x: -16 }}
+                                transition={{ duration: 0.15 }}
                             >
-                                {/* Timer Tab */}
                                 {activeTab === 'timer' && (
-                                    <div>
-                                        {/* Quick Presets */}
-                                        <div style={{ marginBottom: '20px' }}>
-                                            <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>Quick Presets</label>
-                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                {[5, 10, 15, 25, 30].map(min => (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <div>
+                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px' }}>Quick Presets</label>
+                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                {[5, 10, 15, 25, 30, 45, 60].map(min => (
                                                     <button
                                                         key={min}
                                                         onClick={() => setQuickPreset(min)}
-                                                        className="btn-circle small"
                                                         style={{
-                                                            background: targetTime === min * 60 ? 'var(--accent-primary)' : 'rgba(96, 165, 250, 0.1)',
-                                                            color: targetTime === min * 60 ? 'white' : '#60a5fa',
-                                                            borderRadius: '12px',
-                                                            padding: '8px 16px',
-                                                            fontSize: '0.9rem',
-                                                            fontWeight: 600
+                                                            background: targetTime === min * 60 ? 'var(--accent-primary)' : 'rgba(99, 102, 241, 0.08)',
+                                                            color: targetTime === min * 60 ? 'white' : 'var(--accent-primary)',
+                                                            border: `1px solid ${targetTime === min * 60 ? 'transparent' : 'rgba(99, 102, 241, 0.15)'}`,
+                                                            borderRadius: 'var(--radius-sm)',
+                                                            padding: '7px 14px',
+                                                            fontSize: '0.82rem',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            fontFamily: 'inherit',
                                                         }}
                                                     >
-                                                        {min} min
+                                                        {min}m
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
 
-                                        {/* Custom Duration */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                                <label className="text-label" style={{ color: '#60a5fa' }}>Target Duration (Final Alarm)</label>
+                                        <SectionCard>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                                <label className="text-label" style={{ color: 'var(--accent-primary)' }}>Target Duration</label>
                                                 <div
                                                     onClick={() => playSound(finalSound)}
                                                     style={{
                                                         cursor: 'pointer',
-                                                        opacity: 0.7,
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         gap: '4px',
-                                                        padding: '4px 8px',
-                                                        borderRadius: '8px',
-                                                        background: 'rgba(96, 165, 250, 0.1)',
-                                                        transition: 'all 0.2s'
+                                                        padding: '3px 8px',
+                                                        borderRadius: '6px',
+                                                        background: 'rgba(99, 102, 241, 0.08)',
+                                                        transition: 'all 0.2s',
+                                                        color: 'var(--accent-primary)',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 600,
                                                     }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-                                                    title="Test Final Alarm Sound"
                                                 >
-                                                    <Play size={16} />
-                                                    <span style={{ fontSize: '0.75rem', color: '#60a5fa' }}>Test</span>
+                                                    <Play size={12} />
+                                                    Test
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                                 <input type="number" className="input-modern" value={targetMin}
                                                     onChange={e => setTargetTime((Math.max(0, parseInt(e.target.value) || 0) * 60) + targetSec)}
-                                                    style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}
+                                                    style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: "'JetBrains Mono', monospace" }}
                                                 />
-                                                <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.3)' }}>:</span>
+                                                <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--text-dim)' }}>:</span>
                                                 <input type="number" className="input-modern" value={targetSec}
                                                     onChange={e => setTargetTime((targetMin * 60) + Math.max(0, parseInt(e.target.value) || 0))}
-                                                    style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}
+                                                    style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: "'JetBrains Mono', monospace" }}
                                                 />
                                             </div>
-                                            <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-                                                Timer will alert but continue counting.
+                                            <div style={{ marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                                Timer will alert but continue counting
                                             </div>
-                                        </div>
+                                        </SectionCard>
                                     </div>
                                 )}
 
-                                {/* Alerts Tab */}
                                 {activeTab === 'alerts' && (
-                                    <div>
-                                        <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>Intermediate Alerts</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        <label className="text-label">Intermediate Alerts</label>
 
-                                        {/* Creator */}
-                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', marginBottom: '12px' }}>
-                                            <div style={{ fontSize: '0.85rem', marginBottom: '8px', color: 'rgba(255,255,255,0.6)' }}>Play sound after:</div>
-                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                        <SectionCard>
+                                            <div style={{ fontSize: '0.78rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>Play sound after:</div>
+                                            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                                                 <input type="number" className="input-modern" placeholder="Min" value={newMin} onChange={e => setNewMin(e.target.value)} style={{ flex: 1 }} />
                                                 <input type="number" className="input-modern" placeholder="Sec" value={newSec} onChange={e => setNewSec(e.target.value)} style={{ flex: 1 }} />
                                             </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
                                                 <select className="input-modern" value={newSound} onChange={e => setNewSound(e.target.value)} style={{ flex: 2 }}>
                                                     {Object.keys(allSounds).map(k => <option key={k} value={k}>{k}</option>)}
                                                 </select>
                                                 <button
-                                                    className="btn-circle small"
+                                                    className="btn-icon"
                                                     onClick={() => playSound(allSounds[newSound])}
-                                                    style={{
-                                                        background: 'rgba(96, 165, 250, 0.15)',
-                                                        color: '#60a5fa',
-                                                        borderRadius: '12px',
-                                                        width: 'auto',
-                                                        padding: '0 12px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}
-                                                    title="Test this sound"
+                                                    style={{ width: '40px', height: '40px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }}
                                                 >
-                                                    <Play size={16} />
+                                                    <Play size={14} />
                                                 </button>
-                                                <button className="btn-circle small" onClick={addWarning} style={{ background: 'var(--accent-primary)', color: 'white', borderRadius: '12px', width: 'auto', padding: '0 16px' }}>
-                                                    <Plus size={20} />
+                                                <button
+                                                    className="btn-icon"
+                                                    onClick={addWarning}
+                                                    style={{ width: '40px', height: '40px', background: 'var(--accent-primary)', color: 'white' }}
+                                                >
+                                                    <Plus size={16} />
                                                 </button>
                                             </div>
-                                        </div>
+                                        </SectionCard>
 
-                                        {/* Alert List */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
                                             {warnings.map(w => (
                                                 <div key={w.id} className="setting-row">
-                                                    <div style={{ fontWeight: 700, color: 'white', width: '70px', fontFamily: 'monospace' }}>
+                                                    <div style={{
+                                                        fontWeight: 700, color: 'var(--text-primary)', width: '60px',
+                                                        fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem'
+                                                    }}>
                                                         {Math.floor(w.triggerTime / 60)}:{String(w.triggerTime % 60).padStart(2, '0')}
                                                     </div>
-                                                    <div style={{ flex: 1, fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>{w.soundKey}</div>
-                                                    <div
+                                                    <div style={{ flex: 1, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{w.soundKey}</div>
+                                                    <button
                                                         onClick={() => playSound(allSounds[w.soundKey] || WARNING_SOUNDS[w.soundKey])}
                                                         style={{
-                                                            cursor: 'pointer',
-                                                            opacity: 0.7,
-                                                            marginRight: 8,
-                                                            padding: '4px',
-                                                            borderRadius: '6px',
-                                                            background: 'rgba(96, 165, 250, 0.1)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            transition: 'all 0.2s'
+                                                            cursor: 'pointer', background: 'transparent', border: 'none',
+                                                            color: 'var(--accent-primary)', padding: '4px', display: 'flex',
                                                         }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-                                                        title="Test Sound"
                                                     >
-                                                        <Play size={14} />
-                                                    </div>
-                                                    <div className="btn-ghost-danger" onClick={() => setWarnings(warnings.filter(x => x.id !== w.id))}>
-                                                        <Trash2 size={18} />
-                                                    </div>
+                                                        <Play size={13} />
+                                                    </button>
+                                                    <button className="btn-ghost-danger" onClick={() => setWarnings(warnings.filter(x => x.id !== w.id))}>
+                                                        <Trash2 size={14} />
+                                                    </button>
                                                 </div>
                                             ))}
-                                            {warnings.length === 0 && <div style={{ textAlign: 'center', opacity: 0.3, fontSize: '0.9rem', padding: '10px' }}>No intermediate alerts set.</div>}
+                                            {warnings.length === 0 && (
+                                                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', padding: '20px 10px' }}>
+                                                    No intermediate alerts set
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Sounds Tab */}
                                 {activeTab === 'sounds' && (
-                                    <div>
-                                        <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>Sound Library</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <label className="text-label">Sound Library</label>
 
-                                        {/* Sound Grid */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
                                             {Object.entries(allSounds).map(([name, src]) => (
-                                                <div
-                                                    key={name}
-                                                    style={{
-                                                        background: 'rgba(255,255,255,0.05)',
-                                                        borderRadius: '12px',
-                                                        padding: '12px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: '8px',
-                                                        border: '1px solid rgba(255,255,255,0.1)'
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <SectionCard key={name} style={{ padding: '10px' }}>
+                                                    <div style={{
+                                                        fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)',
+                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                        marginBottom: '6px',
+                                                    }}>
                                                         {name}
                                                     </div>
                                                     <button
                                                         onClick={() => playSound(src)}
-                                                        className="btn-circle small"
                                                         style={{
-                                                            background: 'rgba(96, 165, 250, 0.15)',
-                                                            color: '#60a5fa',
-                                                            borderRadius: '8px',
-                                                            padding: '6px',
+                                                            background: 'rgba(99, 102, 241, 0.08)',
+                                                            color: 'var(--accent-primary)',
+                                                            border: '1px solid rgba(99, 102, 241, 0.12)',
+                                                            borderRadius: '6px',
+                                                            padding: '5px',
                                                             width: '100%',
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             justifyContent: 'center',
-                                                            gap: '4px'
+                                                            gap: '4px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 600,
+                                                            fontFamily: 'inherit',
+                                                            transition: 'all 0.2s',
                                                         }}
                                                     >
-                                                        <Play size={14} />
-                                                        <span style={{ fontSize: '0.75rem' }}>Play</span>
+                                                        <Play size={11} />
+                                                        Play
                                                     </button>
-                                                </div>
+                                                </SectionCard>
                                             ))}
                                         </div>
 
-                                        {/* Voice Announcements Section */}
-                                        <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                                            <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>Voice Announcements</label>
-                                            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
-                                                {/* Enable/Disable Toggle */}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                        <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '14px' }}>
+                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px' }}>Voice Announcements</label>
+                                            <SectionCard>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: voiceAnnouncements ? '14px' : 0 }}>
                                                     <div>
-                                                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white' }}>Enable Voice Feedback</div>
-                                                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>Spoken updates at key moments</div>
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Voice Feedback</div>
+                                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Spoken updates at key moments</div>
                                                     </div>
-                                                    <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={voiceAnnouncements}
-                                                            onChange={(e) => setVoiceAnnouncements(e.target.checked)}
-                                                            style={{ opacity: 0, width: 0, height: 0 }}
-                                                        />
-                                                        <span style={{
-                                                            position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
-                                                            backgroundColor: voiceAnnouncements ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                            transition: '0.3s', borderRadius: '24px'
-                                                        }}>
-                                                            <span style={{
-                                                                position: 'absolute', height: '18px', width: '18px',
-                                                                left: voiceAnnouncements ? '28px' : '3px', bottom: '3px',
-                                                                backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
-                                                            }} />
-                                                        </span>
-                                                    </label>
+                                                    <Toggle checked={voiceAnnouncements} onChange={(val) => {
+                                                        setVoiceAnnouncements(val);
+                                                        if (val && 'speechSynthesis' in window) {
+                                                            window.speechSynthesis.cancel();
+                                                            const utterance = new SpeechSynthesisUtterance("Voice feedback enabled");
+                                                            utterance.volume = volume / 100;
+                                                            utterance.rate = 0.9;
+                                                            const voices = window.speechSynthesis.getVoices();
+                                                            if (voices.length > 0) {
+                                                                const selected = voices.find(v => v.name === voiceSelection);
+                                                                if (selected) utterance.voice = selected;
+                                                            }
+                                                            window.speechSynthesis.speak(utterance);
+                                                        }
+                                                    }} />
                                                 </div>
 
                                                 {voiceAnnouncements && (
-                                                    <>
-                                                        {/* Quick Presets */}
-                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Quick Presets</div>
-                                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                                <button
-                                                                    onClick={() => setVoiceAnnouncementMilestones([600, 300, 60])}
-                                                                    style={{
-                                                                        padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(96, 165, 250, 0.15)',
-                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '6px',
-                                                                        color: '#60a5fa', cursor: 'pointer', fontWeight: 500
-                                                                    }}
-                                                                >
-                                                                    Standard (10m, 5m, 1m)
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setVoiceAnnouncementMilestones([900, 600, 300, 60])}
-                                                                    style={{
-                                                                        padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(96, 165, 250, 0.15)',
-                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '6px',
-                                                                        color: '#60a5fa', cursor: 'pointer', fontWeight: 500
-                                                                    }}
-                                                                >
-                                                                    Detailed (15m, 10m, 5m, 1m)
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setVoiceAnnouncementMilestones([300, 60])}
-                                                                    style={{
-                                                                        padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(96, 165, 250, 0.15)',
-                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '6px',
-                                                                        color: '#60a5fa', cursor: 'pointer', fontWeight: 500
-                                                                    }}
-                                                                >
-                                                                    Minimal (5m, 1m)
-                                                                </button>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Presets</div>
+                                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                                {[
+                                                                    { label: 'Standard', milestones: [600, 300, 60] },
+                                                                    { label: 'Detailed', milestones: [900, 600, 300, 60] },
+                                                                    { label: 'Minimal', milestones: [300, 60] },
+                                                                ].map(preset => (
+                                                                    <button key={preset.label} onClick={() => setVoiceAnnouncementMilestones(preset.milestones)}
+                                                                        style={{
+                                                                            padding: '5px 10px', fontSize: '0.72rem', fontFamily: 'inherit',
+                                                                            background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)',
+                                                                            borderRadius: '6px', color: 'var(--accent-primary)', cursor: 'pointer', fontWeight: 500,
+                                                                        }}
+                                                                    >
+                                                                        {preset.label}
+                                                                    </button>
+                                                                ))}
                                                             </div>
                                                         </div>
 
-                                                        {/* Announcement Milestones */}
-                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Announce When Remaining Time Reaches</div>
-                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Active Milestones</div>
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                                                 {voiceAnnouncementMilestones.sort((a, b) => b - a).map((seconds, idx) => {
                                                                     const mins = Math.floor(seconds / 60);
                                                                     const secs = seconds % 60;
                                                                     const label = mins > 0 ? (secs > 0 ? `${mins}m ${secs}s` : `${mins}m`) : `${secs}s`;
                                                                     return (
-                                                                        <div
-                                                                            key={idx}
-                                                                            style={{
-                                                                                display: 'flex', alignItems: 'center', gap: '6px',
-                                                                                padding: '6px 10px', background: 'rgba(96, 165, 250, 0.2)',
-                                                                                border: '1px solid rgba(96, 165, 250, 0.4)', borderRadius: '8px',
-                                                                                fontSize: '0.8rem', fontWeight: 600, color: '#60a5fa'
-                                                                            }}
-                                                                        >
+                                                                        <div key={idx} style={{
+                                                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                                                            padding: '4px 8px', background: 'rgba(99,102,241,0.1)',
+                                                                            border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px',
+                                                                            fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent-primary)',
+                                                                        }}>
                                                                             {label}
-                                                                            <X
-                                                                                size={14}
-                                                                                style={{ cursor: 'pointer', opacity: 0.7 }}
-                                                                                onClick={() => {
-                                                                                    setVoiceAnnouncementMilestones(voiceAnnouncementMilestones.filter((_, i) => i !== idx));
-                                                                                }}
+                                                                            <X size={12} style={{ cursor: 'pointer', opacity: 0.7 }}
+                                                                                onClick={() => setVoiceAnnouncementMilestones(voiceAnnouncementMilestones.filter((_, i) => i !== idx))}
                                                                             />
                                                                         </div>
                                                                     );
                                                                 })}
                                                             </div>
-                                                            {/* Add Custom Milestone */}
-                                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                                <input
-                                                                    type="number"
-                                                                    min="5"
-                                                                    max="3600"
-                                                                    placeholder="Seconds"
-                                                                    id="newMilestone"
-                                                                    style={{
-                                                                        flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)',
-                                                                        borderRadius: '8px', color: 'white', padding: '6px 10px', fontSize: '0.85rem'
-                                                                    }}
-                                                                />
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const input = document.getElementById('newMilestone');
-                                                                        const value = parseInt(input.value);
-                                                                        if (value && value >= 5 && value <= 3600 && !voiceAnnouncementMilestones.includes(value)) {
-                                                                            setVoiceAnnouncementMilestones([...voiceAnnouncementMilestones, value]);
-                                                                            input.value = '';
-                                                                        }
-                                                                    }}
-                                                                    style={{
-                                                                        padding: '6px 12px', background: 'rgba(96, 165, 250, 0.2)',
-                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '8px',
-                                                                        color: '#60a5fa', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                                                                        display: 'flex', alignItems: 'center', gap: '4px'
-                                                                    }}
-                                                                >
-                                                                    <Plus size={14} />
-                                                                    Add
-                                                                </button>
-                                                            </div>
                                                         </div>
 
-                                                        {/* Final Warning */}
-                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Final Warning</div>
-                                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>Special announcement when time is almost up</div>
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                            <input type="number" min="5" max="3600" placeholder="Seconds" id="newMilestone" className="input-modern" style={{ flex: 1, fontSize: '0.82rem' }} />
+                                                            <button onClick={() => {
+                                                                const input = document.getElementById('newMilestone');
+                                                                const value = parseInt(input.value);
+                                                                if (value && value >= 5 && value <= 3600 && !voiceAnnouncementMilestones.includes(value)) {
+                                                                    setVoiceAnnouncementMilestones([...voiceAnnouncementMilestones, value]);
+                                                                    input.value = '';
+                                                                }
+                                                            }} style={{
+                                                                padding: '8px 12px', background: 'rgba(99,102,241,0.1)',
+                                                                border: '1px solid rgba(99,102,241,0.15)', borderRadius: '8px',
+                                                                color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.75rem',
+                                                                fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'inherit',
+                                                            }}>
+                                                                <Plus size={12} /> Add
+                                                            </button>
+                                                        </div>
+
+                                                        <div>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Final Warning At</div>
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
                                                                 {[30, 15, 10, 5].map(sec => (
-                                                                    <button
-                                                                        key={sec}
-                                                                        onClick={() => setVoiceFinalWarning(sec)}
+                                                                    <button key={sec} onClick={() => setVoiceFinalWarning(sec)}
                                                                         style={{
-                                                                            flex: 1, padding: '8px', background: voiceFinalWarning === sec ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.05)',
-                                                                            border: `1px solid ${voiceFinalWarning === sec ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255,255,255,0.1)'}`,
-                                                                            borderRadius: '8px', color: voiceFinalWarning === sec ? '#ef4444' : 'rgba(255,255,255,0.7)',
-                                                                            cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
+                                                                            flex: 1, padding: '6px', fontFamily: 'inherit',
+                                                                            background: voiceFinalWarning === sec ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.03)',
+                                                                            border: `1px solid ${voiceFinalWarning === sec ? 'rgba(248,113,113,0.3)' : 'var(--glass-border)'}`,
+                                                                            borderRadius: '6px', color: voiceFinalWarning === sec ? 'var(--accent-red)' : 'var(--text-secondary)',
+                                                                            cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600,
                                                                         }}
                                                                     >
                                                                         {sec}s
@@ -568,492 +543,238 @@ const SettingsOverlay = ({
                                                             </div>
                                                         </div>
 
-                                                        {/* Voice Selection */}
-                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Voice Character</div>
-                                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '12px' }}>Choose the voice that announces your milestones</div>
-                                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Voice</div>
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
                                                                 <select
                                                                     value={tempVoiceSelection}
                                                                     onChange={(e) => setTempVoiceSelection(e.target.value)}
-                                                                    style={{
-                                                                        flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)',
-                                                                        borderRadius: '8px', color: 'white', padding: '8px 12px', fontSize: '0.85rem',
-                                                                        cursor: 'pointer'
-                                                                    }}
+                                                                    className="input-modern"
+                                                                    style={{ flex: 1, fontSize: '0.82rem' }}
                                                                 >
                                                                     <option value="">Default System Voice</option>
-                                                                    {availableVoices.map((voice, idx) => {
-                                                                        // Categorize voices
-                                                                        let category = '';
-                                                                        const name = voice.name.toLowerCase();
-                                                                        if (name.includes('female') || name.includes('woman') || name.includes('zira') || name.includes('samantha')) {
-                                                                            category = '👩 ';
-                                                                        } else if (name.includes('male') || name.includes('man') || name.includes('david') || name.includes('daniel')) {
-                                                                            category = '👨 ';
-                                                                        }
-
-                                                                        return (
-                                                                            <option key={idx} value={voice.name}>
-                                                                                {category}{voice.name} ({voice.lang})
-                                                                            </option>
-                                                                        );
-                                                                    })}
+                                                                    {availableVoices.map((voice, idx) => (
+                                                                        <option key={idx} value={voice.name}>
+                                                                            {voice.name} ({voice.lang})
+                                                                        </option>
+                                                                    ))}
                                                                 </select>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const voice = availableVoices.find(v => v.name === tempVoiceSelection);
-                                                                        const utterance = new SpeechSynthesisUtterance("5 minutes remaining");
-                                                                        if (voice) utterance.voice = voice;
-                                                                        utterance.volume = volume / 100;
-                                                                        utterance.rate = 0.9;
-                                                                        utterance.pitch = 1.0;
-                                                                        window.speechSynthesis.speak(utterance);
-                                                                    }}
-                                                                    style={{
-                                                                        padding: '8px 12px', background: 'rgba(96, 165, 250, 0.2)',
-                                                                        border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '8px',
-                                                                        color: '#60a5fa', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                                                                        display: 'flex', alignItems: 'center', gap: '4px'
-                                                                    }}
-                                                                >
-                                                                    <Play size={14} />
-                                                                    Preview
-                                                                </button>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => setVoiceSelection(tempVoiceSelection)}
-                                                                style={{
-                                                                    width: '100%', padding: '8px', background: 'rgba(34, 197, 94, 0.2)',
-                                                                    border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '8px',
-                                                                    color: '#22c55e', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
-                                                                }}
-                                                            >
-                                                                ✓ Save Voice Selection
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Test Voice */}
-                                                        <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '8px' }}>Test Current Settings</div>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const voice = availableVoices.find(v => v.name === voiceSelection);
-                                                                    const text = "5 minutes remaining";
-                                                                    const utterance = new SpeechSynthesisUtterance(text);
+                                                                <button onClick={() => {
+                                                                    window.speechSynthesis.cancel();
+                                                                    const voice = availableVoices.find(v => v.name === tempVoiceSelection);
+                                                                    const utterance = new SpeechSynthesisUtterance("Testing voice feedback. 5 minutes remaining.");
                                                                     if (voice) utterance.voice = voice;
                                                                     utterance.volume = volume / 100;
                                                                     utterance.rate = 0.9;
-                                                                    utterance.pitch = 1.0;
                                                                     window.speechSynthesis.speak(utterance);
+                                                                }} className="btn-icon" style={{ width: '40px', height: '40px', background: 'rgba(99,102,241,0.08)', color: 'var(--accent-primary)' }}>
+                                                                    <Play size={14} />
+                                                                </button>
+                                                            </div>
+                                                            <button onClick={() => {
+                                                                    setVoiceSelection(tempVoiceSelection);
                                                                 }}
                                                                 style={{
-                                                                    width: '100%', padding: '10px', background: 'rgba(96, 165, 250, 0.15)',
-                                                                    border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: '8px',
-                                                                    color: '#60a5fa', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600,
-                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                                                    width: '100%', padding: '7px', marginTop: '8px',
+                                                                    background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)',
+                                                                    borderRadius: '6px', color: 'var(--accent-green)', cursor: 'pointer',
+                                                                    fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
                                                                 }}
                                                             >
-                                                                <Play size={14} />
-                                                                Test Voice Announcement
+                                                                Save Voice
                                                             </button>
                                                         </div>
-
-                                                        {/* How It Works */}
-                                                        <div style={{ background: 'rgba(96, 165, 250, 0.05)', padding: '12px', borderRadius: '8px' }}>
-                                                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#60a5fa', marginBottom: '6px' }}>How It Works</div>
-                                                            <ul style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', paddingLeft: '20px', margin: 0, lineHeight: '1.6' }}>
-                                                                <li>Announces when remaining time reaches each milestone</li>
-                                                                <li>Final warning plays at your chosen threshold</li>
-                                                                <li>Uses natural language (e.g., "5 minutes" instead of "300 seconds")</li>
-                                                                <li>Volume follows your master volume setting</li>
-                                                            </ul>
-                                                        </div>
-                                                    </>
+                                                    </div>
                                                 )}
-                                            </div>
+                                            </SectionCard>
+                                        </div>
+
+                                        <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '14px' }}>
+                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px' }}>Upload Custom Sound</label>
+                                            <SectionCard>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <input type="password" className="input-modern" placeholder="Admin Password"
+                                                        value={adminPass} onChange={e => setAdminPass(e.target.value)} style={{ fontSize: '0.82rem' }} />
+                                                    <input type="text" className="input-modern" placeholder="Sound Name"
+                                                        value={customFilename} onChange={e => setCustomFilename(e.target.value)} style={{ fontSize: '0.82rem' }} />
+                                                    <input type="file" accept="audio/*" onChange={e => setFile(e.target.files[0])}
+                                                        style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }} />
+                                                    <button onClick={handleUpload}
+                                                        style={{
+                                                            padding: '8px', background: 'var(--accent-primary)', border: 'none',
+                                                            borderRadius: '8px', color: 'white', cursor: 'pointer', fontSize: '0.82rem',
+                                                            fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            gap: '6px', fontFamily: 'inherit',
+                                                        }}
+                                                    >
+                                                        <Upload size={14} /> Upload
+                                                    </button>
+                                                    {uploadStatus && <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', textAlign: 'center' }}>{uploadStatus}</div>}
+                                                </div>
+                                            </SectionCard>
                                         </div>
                                     </div>
                                 )}
 
                                 {activeTab === 'visuals' && (
-                                    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        {/* Clock Scale */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Clock Size</div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <input
-                                                    type="range"
-                                                    min="0.4"
-                                                    max="2.5"
-                                                    step="0.05"
-                                                    value={clockScale}
-                                                    onChange={(e) => setClockScale(parseFloat(e.target.value))}
-                                                    style={{ flex: 1, accentColor: 'var(--accent-cyan)' }}
-                                                />
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', fontWeight: 700, minWidth: '40px' }}>
-                                                    {Math.round(clockScale * 100)}%
-                                                </span>
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>
-                                                Adjusts both the clock text and the progress ring size.
-                                            </div>
-                                        </div>
-
-                                        {/* Color Thresholds */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Stage Colors (Time-Based)</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
-                                                Change the timer color as you get closer to the target.
-                                            </div>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                {[...colorThresholds].sort((a, b) => b.time - a.time).map((t) => (
-                                                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '10px' }}>
-                                                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', minWidth: '70px' }}>Below</span>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <input
-                                                                type="number"
-                                                                value={t.time}
-                                                                onChange={(e) => {
-                                                                    const val = parseInt(e.target.value) || 0;
-                                                                    const newThresholds = colorThresholds.map(thresh =>
-                                                                        thresh.id === t.id ? { ...thresh, time: val } : thresh
-                                                                    );
-                                                                    setColorThresholds(newThresholds);
-                                                                }}
-                                                                style={{
-                                                                    width: '60px',
-                                                                    background: 'rgba(255,255,255,0.1)',
-                                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                                    color: 'white',
-                                                                    borderRadius: '6px',
-                                                                    padding: '4px 8px',
-                                                                    fontSize: '0.9rem',
-                                                                    fontWeight: 700,
-                                                                    textAlign: 'center'
-                                                                }}
-                                                            />
-                                                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>sec</span>
-                                                        </div>
-
-                                                        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
-                                                            <input
-                                                                type="color"
-                                                                value={t.color}
-                                                                onChange={(e) => {
-                                                                    const newThresholds = colorThresholds.map(thresh =>
-                                                                        thresh.id === t.id ? { ...thresh, color: e.target.value } : thresh
-                                                                    );
-                                                                    setColorThresholds(newThresholds);
-                                                                }}
-                                                                style={{
-                                                                    width: '32px',
-                                                                    height: '32px',
-                                                                    border: 'none',
-                                                                    background: 'none',
-                                                                    cursor: 'pointer',
-                                                                    padding: 0
-                                                                }}
-                                                            />
-
-                                                            {t.type !== 'warning' && t.type !== 'final' ? (
-                                                                <button
-                                                                    onClick={() => setColorThresholds(prev => prev.filter(p => p.id !== t.id))}
-                                                                    style={{ background: 'none', border: 'none', color: '#ef4444', padding: '4px', cursor: 'pointer', opacity: 0.6 }}
-                                                                >
-                                                                    <Trash2 size={16} />
-                                                                </button>
-                                                            ) : (
-                                                                <div style={{ width: '24px' }} />
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-
-                                                <button
-                                                    onClick={() => setColorThresholds(prev => [
-                                                        ...prev,
-                                                        { id: Date.now(), time: 10, color: '#ec4899', type: 'custom' }
-                                                    ])}
-                                                    style={{
-                                                        width: '100%',
-                                                        borderRadius: '10px',
-                                                        background: 'rgba(96, 165, 250, 0.1)',
-                                                        border: '1px dashed rgba(96, 165, 250, 0.3)',
-                                                        color: '#60a5fa',
-                                                        fontSize: '0.85rem',
-                                                        fontWeight: 600,
-                                                        padding: '10px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '6px',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <Plus size={16} /> Add New Stage
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Reset Button */}
-                                        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label className="text-label">Theme</label>
                                             <button
-                                                onClick={onResetVisuals}
+                                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                                                 style={{
-                                                    width: '100%',
-                                                    padding: '12px',
-                                                    background: 'rgba(239, 68, 68, 0.1)',
-                                                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                    color: '#f87171',
-                                                    borderRadius: '12px',
-                                                    fontSize: '0.9rem',
-                                                    fontWeight: 600,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '8px',
-                                                    cursor: 'pointer'
+                                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
+                                                    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)',
+                                                    borderRadius: 'var(--radius-full)', cursor: 'pointer', color: 'var(--accent-primary)',
+                                                    fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s',
                                                 }}
                                             >
-                                                <RotateCcw size={16} />
-                                                Reset Visuals to Default
+                                                {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                                                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                                             </button>
                                         </div>
+
+                                        <SectionCard>
+                                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>Clock Scale</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <input
+                                                    type="range" min="0.5" max="2.0" step="0.1" value={clockScale}
+                                                    onChange={e => setClockScale(parseFloat(e.target.value))}
+                                                    style={{ flex: 1, accentColor: 'var(--accent-primary)' }}
+                                                />
+                                                <span style={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", minWidth: '40px', textAlign: 'right' }}>
+                                                    {clockScale.toFixed(1)}x
+                                                </span>
+                                            </div>
+                                        </SectionCard>
+
+                                        <SectionCard>
+                                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>Color Thresholds</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {colorThresholds.map((threshold, idx) => (
+                                                    <div key={threshold.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <input
+                                                            type="color" value={threshold.color}
+                                                            onChange={e => {
+                                                                const updated = [...colorThresholds];
+                                                                updated[idx] = { ...threshold, color: e.target.value };
+                                                                setColorThresholds(updated);
+                                                            }}
+                                                            style={{ width: '32px', height: '32px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                                                        />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                                {threshold.type === 'final' ? 'Final (0s)' : `Warning (${threshold.time}s remaining)`}
+                                                            </div>
+                                                        </div>
+                                                        <input
+                                                            type="number" value={threshold.time}
+                                                            onChange={e => {
+                                                                const updated = [...colorThresholds];
+                                                                updated[idx] = { ...threshold, time: parseInt(e.target.value) || 0 };
+                                                                setColorThresholds(updated);
+                                                            }}
+                                                            className="input-modern"
+                                                            style={{ width: '70px', fontSize: '0.82rem', textAlign: 'center' }}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </SectionCard>
+
+                                        <button onClick={onResetVisuals} style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                            padding: '8px', background: 'transparent', border: '1px solid var(--glass-border)',
+                                            borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--text-secondary)',
+                                            fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s',
+                                        }}>
+                                            <RotateCcw size={13} /> Reset Visuals
+                                        </button>
                                     </div>
                                 )}
 
-                                {/* Stats Tab */}
                                 {activeTab === 'stats' && (
-                                    <StatsDashboard
-                                        sessionHistory={sessionHistory}
-                                        pomodoroCount={pomodoroCount}
-                                    />
+                                    <StatsDashboard sessionHistory={sessionHistory} pomodoroCount={pomodoroCount} />
                                 )}
 
-                                {/* Preferences Tab */}
                                 {activeTab === 'preferences' && (
-                                    <div>
-                                        <label className="text-label" style={{ display: 'block', marginBottom: '12px' }}>App Preferences</label>
-
-                                        {/* Volume Control */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Volume Control</div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <Music size={16} style={{ color: '#60a5fa' }} />
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="100"
-                                                    value={volume || 100}
-                                                    onChange={(e) => setVolume(parseInt(e.target.value))}
-                                                    style={{
-                                                        flex: 1,
-                                                        accentColor: '#60a5fa',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                />
-                                                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#60a5fa', minWidth: '45px' }}>
-                                                    {volume || 100}%
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <SectionCard>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Volume2 size={15} style={{ color: 'var(--accent-primary)' }} />
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Volume</span>
+                                                </div>
+                                                <span style={{ fontSize: '0.78rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-secondary)' }}>
+                                                    {volume}%
                                                 </span>
                                             </div>
-                                            <button
-                                                onClick={() => playSound("Single Beep")}
-                                                className="btn-circle small"
-                                                style={{
-                                                    marginTop: '12px',
-                                                    background: 'rgba(96, 165, 250, 0.15)',
-                                                    color: '#60a5fa',
-                                                    borderRadius: '12px',
-                                                    width: '100%',
-                                                    padding: '8px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '8px'
-                                                }}
-                                            >
-                                                <Play size={14} />
-                                                <span style={{ fontSize: '0.85rem' }}>Test Volume</span>
-                                            </button>
-                                        </div>
+                                            <input
+                                                type="range" min="0" max="100" value={volume}
+                                                onChange={e => setVolume(parseInt(e.target.value))}
+                                                style={{ width: '100%', accentColor: 'var(--accent-primary)' }}
+                                            />
+                                        </SectionCard>
 
-                                        {/* Export & Save */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Session Management</div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button
-                                                    onClick={exportLaps}
-                                                    className="btn-circle small"
-                                                    style={{
-                                                        flex: 1,
-                                                        background: 'rgba(34, 197, 94, 0.15)',
-                                                        color: '#4ade80',
-                                                        borderRadius: '12px',
-                                                        width: 'auto',
-                                                        padding: '8px 12px',
-                                                        fontSize: '0.85rem',
-                                                        fontWeight: 600
-                                                    }}
-                                                >
+                                        <SectionCard>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>High Contrast</span>
+                                                    <Toggle checked={highContrast} onChange={setHighContrast} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Reduced Motion</span>
+                                                    <Toggle checked={reducedMotion} onChange={setReducedMotion} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Vibration</span>
+                                                    <Toggle checked={vibrationEnabled} onChange={setVibrationEnabled} />
+                                                </div>
+                                            </div>
+                                        </SectionCard>
+
+                                        <SectionCard>
+                                            <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '10px' }}>Actions</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <button onClick={toggleFullscreen} style={{
+                                                    width: '100%', padding: '8px', fontFamily: 'inherit',
+                                                    background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)',
+                                                    borderRadius: '8px', color: 'var(--accent-purple)', cursor: 'pointer',
+                                                    fontSize: '0.78rem', fontWeight: 600, display: 'flex', alignItems: 'center',
+                                                    justifyContent: 'center', gap: '6px',
+                                                }}>
+                                                    {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+                                                    {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                                                </button>
+                                                <button onClick={exportLaps} style={{
+                                                    width: '100%', padding: '8px', fontFamily: 'inherit',
+                                                    background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.15)',
+                                                    borderRadius: '8px', color: 'var(--accent-cyan)', cursor: 'pointer',
+                                                    fontSize: '0.78rem', fontWeight: 600,
+                                                }}>
                                                     Export Laps (CSV)
                                                 </button>
-                                                <button
-                                                    onClick={saveSession}
-                                                    className="btn-circle small"
-                                                    style={{
-                                                        flex: 1,
-                                                        background: 'rgba(96, 165, 250, 0.15)',
-                                                        color: '#60a5fa',
-                                                        borderRadius: '12px',
-                                                        width: 'auto',
-                                                        padding: '8px 12px',
-                                                        fontSize: '0.85rem',
-                                                        fontWeight: 600
-                                                    }}
-                                                >
+                                                <button onClick={saveSession} style={{
+                                                    width: '100%', padding: '8px', fontFamily: 'inherit',
+                                                    background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)',
+                                                    borderRadius: '8px', color: 'var(--accent-green)', cursor: 'pointer',
+                                                    fontSize: '0.78rem', fontWeight: 600,
+                                                }}>
                                                     Save Session
                                                 </button>
                                             </div>
-                                        </div>
-
-                                        {/* Appearance & Accessibility */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Appearance & Accessibility</div>
-
-                                            {/* Theme Toggle */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Light Mode</span>
-                                                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={theme === 'light'}
-                                                        onChange={(e) => setTheme(e.target.checked ? 'light' : 'dark')}
-                                                        style={{ opacity: 0, width: 0, height: 0 }}
-                                                    />
-                                                    <span style={{
-                                                        position: 'absolute',
-                                                        cursor: 'pointer',
-                                                        top: 0, bottom: 0, left: 0, right: 0,
-                                                        backgroundColor: theme === 'light' ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s', borderRadius: '24px'
-                                                    }}>
-                                                        <span style={{
-                                                            position: 'absolute', height: '18px', width: '18px',
-                                                            left: theme === 'light' ? '28px' : '3px', bottom: '3px',
-                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
-                                                        }} />
-                                                    </span>
-                                                </label>
-                                            </div>
-
-                                            {/* High Contrast */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>High Contrast</span>
-                                                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={highContrast}
-                                                        onChange={(e) => setHighContrast(e.target.checked)}
-                                                        style={{ opacity: 0, width: 0, height: 0 }}
-                                                    />
-                                                    <span style={{
-                                                        position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
-                                                        backgroundColor: highContrast ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s', borderRadius: '24px'
-                                                    }}>
-                                                        <span style={{
-                                                            position: 'absolute', height: '18px', width: '18px',
-                                                            left: highContrast ? '28px' : '3px', bottom: '3px',
-                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
-                                                        }} />
-                                                    </span>
-                                                </label>
-                                            </div>
-
-                                            {/* Reduced Motion */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Reduced Motion</span>
-                                                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={reducedMotion}
-                                                        onChange={(e) => setReducedMotion(e.target.checked)}
-                                                        style={{ opacity: 0, width: 0, height: 0 }}
-                                                    />
-                                                    <span style={{
-                                                        position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
-                                                        backgroundColor: reducedMotion ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s', borderRadius: '24px'
-                                                    }}>
-                                                        <span style={{
-                                                            position: 'absolute', height: '18px', width: '18px',
-                                                            left: reducedMotion ? '28px' : '3px', bottom: '3px',
-                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
-                                                        }} />
-                                                    </span>
-                                                </label>
-                                            </div>
-
-                                            {/* Vibration */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Vibration</span>
-                                                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '24px' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={vibrationEnabled}
-                                                        onChange={(e) => setVibrationEnabled(e.target.checked)}
-                                                        style={{ opacity: 0, width: 0, height: 0 }}
-                                                    />
-                                                    <span style={{
-                                                        position: 'absolute', cursor: 'pointer', top: 0, bottom: 0, left: 0, right: 0,
-                                                        backgroundColor: vibrationEnabled ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                                                        transition: '0.3s', borderRadius: '24px'
-                                                    }}>
-                                                        <span style={{
-                                                            position: 'absolute', height: '18px', width: '18px',
-                                                            left: vibrationEnabled ? '28px' : '3px', bottom: '3px',
-                                                            backgroundColor: 'white', transition: '0.3s', borderRadius: '50%'
-                                                        }} />
-                                                    </span>
-                                                </label>
-                                            </div>
-
-
-                                        </div>
-
-                                        {/* Mobile Features */}
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Mobile Features</div>
-                                            <button
-                                                onClick={toggleFullscreen}
-                                                style={{
-                                                    width: '100%', padding: '10px', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)',
-                                                    borderRadius: '12px', color: '#a78bfa', cursor: 'pointer', marginBottom: '8px', fontSize: '0.85rem'
-                                                }}
-                                            >
-                                                {isFullscreen ? '✕ Exit Fullscreen' : '⛶ Enter Fullscreen'}
-                                            </button>
-                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-                                                Screen wake lock is managed automatically
-                                            </div>
-                                        </div>
+                                        </SectionCard>
                                     </div>
                                 )}
                             </motion.div>
                         </AnimatePresence>
                     </div>
 
-                    {/* Footer */}
-                    <div style={{ padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ padding: '14px 20px', borderTop: '1px solid var(--glass-border)' }}>
                         <button
-                            className="btn-circle"
                             onClick={onClose}
-                            style={{
-                                width: '100%', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '12px', padding: '12px', fontSize: '1rem', fontWeight: 700, cursor: 'pointer'
-                            }}
+                            className="btn-block"
+                            style={{ fontSize: '0.9rem' }}
                         >
                             Done
                         </button>

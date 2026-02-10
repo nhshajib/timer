@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "framer-motion": "^12.31.0",

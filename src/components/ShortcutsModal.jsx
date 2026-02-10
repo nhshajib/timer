@@ -22,88 +22,74 @@ const ShortcutsModal = ({ isOpen, onClose }) => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
-                style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    backdropFilter: 'blur(8px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    padding: '20px'
-                }}
+                className="modal-overlay"
             >
                 <motion.div
-                    initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                    initial={{ scale: 0.95, y: 16, opacity: 0 }}
                     animate={{ scale: 1, y: 0, opacity: 1 }}
-                    exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                    exit={{ scale: 0.95, y: 16, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     onClick={e => e.stopPropagation()}
                     style={{
                         width: '100%',
-                        maxWidth: '400px',
-                        background: 'rgba(15, 23, 42, 0.95)',
-                        backdropFilter: 'blur(24px)',
-                        border: '1px solid rgba(148, 163, 184, 0.2)',
-                        borderRadius: '20px',
-                        boxShadow: '0 24px 64px rgba(0, 0, 0, 0.5)',
-                        overflow: 'hidden'
+                        maxWidth: '380px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: 'var(--radius-2xl)',
+                        boxShadow: 'var(--shadow-lg), var(--shadow-glow-blue)',
+                        overflow: 'hidden',
                     }}
                 >
-                    {/* Header */}
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '20px 24px',
-                        borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-                        background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent)'
+                        padding: '18px 20px',
+                        borderBottom: '1px solid var(--glass-border)',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <Keyboard size={20} style={{ color: '#60a5fa' }} />
-                            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'white' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Keyboard size={16} style={{ color: 'var(--accent-primary)' }} />
+                            <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
                                 Keyboard Shortcuts
                             </h2>
                         </div>
-                        <button
-                            onClick={onClose}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'rgba(255,255,255,0.5)',
-                                cursor: 'pointer',
-                                padding: '4px'
-                            }}
-                        >
-                            <X size={20} />
+                        <button onClick={onClose} style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <X size={16} />
                         </button>
                     </div>
 
-                    {/* Shortcuts List */}
-                    <div style={{ padding: '16px 24px 24px' }}>
+                    <div style={{ padding: '12px 20px 20px' }}>
                         {shortcuts.map((shortcut, idx) => (
-                            <div
-                                key={idx}
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '12px 0',
-                                    borderBottom: idx < shortcuts.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'
-                                }}
-                            >
-                                <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                            <div key={idx} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '10px 0',
+                                borderBottom: idx < shortcuts.length - 1 ? '1px solid var(--glass-border)' : 'none',
+                            }}>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
                                     {shortcut.description}
                                 </span>
                                 <kbd style={{
-                                    background: 'rgba(96, 165, 250, 0.15)',
-                                    border: '1px solid rgba(96, 165, 250, 0.3)',
-                                    color: '#60a5fa',
-                                    padding: '4px 10px',
-                                    borderRadius: '6px',
-                                    fontSize: '0.8rem',
-                                    fontFamily: 'monospace',
-                                    fontWeight: 600
+                                    background: 'rgba(99, 102, 241, 0.08)',
+                                    border: '1px solid rgba(99, 102, 241, 0.15)',
+                                    color: 'var(--accent-primary)',
+                                    padding: '3px 8px',
+                                    borderRadius: '5px',
+                                    fontSize: '0.72rem',
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    fontWeight: 600,
                                 }}>
                                     {shortcut.key}
                                 </kbd>

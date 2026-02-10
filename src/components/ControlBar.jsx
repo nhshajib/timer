@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw, Plus, Settings } from 'lucide-react';
+import { Play, Pause, RotateCcw, Timer, Plus, Settings, Keyboard } from 'lucide-react';
 
 const ControlBar = ({
     isRunning,
@@ -8,62 +8,112 @@ const ControlBar = ({
     resetTimer,
     undoReset,
     handleLap,
-    setIsSettingsOpen
+    setIsSettingsOpen,
+    timerMode,
+    setTimerMode,
+    onShowShortcuts,
 }) => {
+    const modes = [
+        { id: 'stopwatch', label: 'Stopwatch' },
+        { id: 'countdown', label: 'Countdown' },
+    ];
+
     return (
-        <div style={{ position: 'fixed', bottom: '40px', zIndex: 10 }}>
-            <div className="control-bar">
-                {/* LEFT BUTTON: Lap (Running) vs Reset/Undo (Paused) */}
+        <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            paddingBottom: '32px',
+            zIndex: 10,
+            pointerEvents: 'none',
+        }}>
+            {!isRunning && (
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="mode-switcher"
+                    style={{ pointerEvents: 'auto' }}
+                >
+                    {modes.map(mode => (
+                        <button
+                            key={mode.id}
+                            className={`mode-tab ${timerMode === mode.id ? 'active' : ''}`}
+                            onClick={() => setTimerMode(mode.id)}
+                        >
+                            {mode.label}
+                        </button>
+                    ))}
+                </motion.div>
+            )}
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="control-bar"
+                style={{ pointerEvents: 'auto' }}
+            >
                 {isRunning ? (
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="btn-circle small"
+                        className="btn-icon accent-cyan"
                         onClick={handleLap}
-                        style={{ color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.1)' }}
+                        title="Add Lap"
                     >
-                        <Plus size={24} strokeWidth={3} />
+                        <Plus size={20} strokeWidth={2.5} />
                     </motion.button>
                 ) : lastResetState ? (
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="btn-circle small"
+                        className="btn-icon accent-amber"
                         onClick={undoReset}
-                        style={{ color: '#fbbf24', background: 'rgba(251, 191, 36, 0.15)' }}
                         title="Undo Reset"
                     >
-                        <RotateCcw size={24} style={{ transform: 'scaleX(-1)' }} />
+                        <RotateCcw size={18} style={{ transform: 'scaleX(-1)' }} />
                     </motion.button>
                 ) : (
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="btn-circle small"
+                        className="btn-icon"
                         onClick={resetTimer}
+                        title="Reset"
                     >
-                        <RotateCcw size={24} />
+                        <RotateCcw size={18} />
                     </motion.button>
                 )}
 
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="btn-circle btn-primary"
+                    className="btn-icon primary"
                     onClick={toggleTimer}
+                    title={isRunning ? 'Pause' : 'Start'}
                 >
-                    {isRunning ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ marginLeft: '4px' }} />}
+                    {isRunning
+                        ? <Pause size={26} fill="currentColor" />
+                        : <Play size={26} fill="currentColor" style={{ marginLeft: '3px' }} />
+                    }
                 </motion.button>
 
                 <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="btn-circle small"
+                    className="btn-icon"
                     onClick={() => setIsSettingsOpen(true)}
+                    title="Settings"
                 >
-                    <Settings size={24} />
+                    <Settings size={18} />
                 </motion.button>
-            </div>
+            </motion.div>
         </div>
     );
 };

@@ -11,12 +11,14 @@ const TimerDisplay = ({
     activeColor,
     progressPercent
 }) => {
-    // Circular progress ring dimensions
-    const size = 400 * clockScale;
-    const strokeWidth = 8;
-    const radius = (size - strokeWidth) / 2;
+    const size = Math.min(340, 340 * clockScale);
+    const strokeWidth = 4;
+    const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (progressPercent / 100) * circumference;
+
+    const glowSize = Math.min(20, 8 + (progressPercent / 100) * 12);
+    const glowOpacity = 0.3 + (progressPercent / 100) * 0.4;
 
     return (
         <div style={{
@@ -25,10 +27,9 @@ const TimerDisplay = ({
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
-            padding: '40px 20px',
-            minHeight: '400px'
+            padding: '20px',
+            userSelect: 'none',
         }}>
-            {/* CIRCULAR PROGRESS RING */}
             <svg
                 width={size}
                 height={size}
@@ -37,84 +38,118 @@ const TimerDisplay = ({
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%) rotate(-90deg)',
-                    filter: 'drop-shadow(0 0 20px rgba(96, 165, 250, 0.3))',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
                 }}
             >
-                {/* Background Circle */}
+                <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="var(--accent-primary)" />
+                        <stop offset="50%" stopColor="var(--accent-blue)" />
+                        <stop offset="100%" stopColor="var(--accent-cyan)" />
+                    </linearGradient>
+                    <filter id="progressGlow">
+                        <feGaussianBlur stdDeviation={glowSize / 3} result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </defs>
+
                 <circle
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
                     fill="none"
-                    stroke="rgba(96, 165, 250, 0.1)"
+                    stroke="var(--glass-border)"
                     strokeWidth={strokeWidth}
                 />
 
-                {/* Progress Circle */}
                 <motion.circle
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
                     fill="none"
-                    stroke={activeColor}
-                    strokeWidth={strokeWidth}
+                    stroke={progressPercent > 90 ? activeColor : "url(#progressGradient)"}
+                    strokeWidth={strokeWidth + 1}
                     strokeLinecap="round"
                     strokeDasharray={circumference}
                     animate={{ strokeDashoffset: offset }}
-                    transition={{ type: "spring", stiffness: 50, damping: 20 }}
-                    style={{
-                        filter: `drop-shadow(0 0 8px ${activeColor})`
-                    }}
+                    transition={{ type: "spring", stiffness: 60, damping: 25 }}
+                    filter="url(#progressGlow)"
+                    style={{ opacity: glowOpacity + 0.3 }}
                 />
+
+                {progressPercent > 0 && (
+                    <motion.circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke={progressPercent > 90 ? activeColor : "url(#progressGradient)"}
+                        strokeWidth={strokeWidth * 3}
+                        strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        animate={{ strokeDashoffset: offset }}
+                        transition={{ type: "spring", stiffness: 60, damping: 25 }}
+                        style={{ opacity: 0.08 }}
+                    />
+                )}
             </svg>
 
-            {/* MAIN TIMER DISPLAY */}
             <motion.div
                 animate={{
-                    scale: isRunning ? [1, 1.02, 1] : 1,
+                    scale: isRunning ? [1, 1.008, 1] : 1,
                 }}
                 transition={{
-                    duration: 2,
+                    duration: 3,
                     repeat: isRunning ? Infinity : 0,
                     ease: "easeInOut"
                 }}
                 style={{
                     position: 'relative',
                     zIndex: 10,
-                    fontSize: `calc(5rem * ${clockScale})`,
-                    fontWeight: 700,
-                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-                    letterSpacing: '-0.02em',
-                    color: 'var(--text-primary)',
-                    textShadow: `0 0 30px ${activeColor}40, 0 2px 10px rgba(0,0,0,0.3)`,
-                    transition: 'font-size 0.3s ease, color 0.3s ease',
-                    userSelect: 'none'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    minHeight: `${size * 0.7}px`,
+                    justifyContent: 'center',
                 }}
                 aria-live="polite"
                 aria-atomic="true"
                 aria-label={`Timer: ${formatTime(elapsedTime)}${isRunning ? ', running' : ', stopped'}`}
                 role="timer"
             >
-                {formatTime(elapsedTime)}
-            </motion.div>
+                <div
+                    className="timer-font"
+                    style={{
+                        fontSize: `calc(4.5rem * ${clockScale})`,
+                        fontWeight: 700,
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1,
+                        color: 'var(--text-primary)',
+                        transition: 'font-size 0.3s ease',
+                    }}
+                >
+                    {formatTime(elapsedTime)}
+                </div>
 
-            {/* Timer Mode Indicator */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 0.6, y: 0 }}
-                style={{
-                    position: 'relative',
-                    marginTop: '16px',
-                    fontSize: `calc(0.85rem * ${clockScale})`,
-                    fontWeight: 500,
-                    color: 'rgba(255, 255, 255, 0.5)',
+                <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    transition: 'font-size 0.3s ease'
-                }}
-            >
-                {timerMode === 'countdown' ? `Target: ${formatTime(targetTime * 1000)}` : 'Stopwatch'}
+                    letterSpacing: '0.15em',
+                    transition: 'all 0.3s ease',
+                }}>
+                    {timerMode === 'countdown'
+                        ? `Target ${formatTime(targetTime * 1000)}`
+                        : timerMode === 'pomodoro'
+                            ? 'Pomodoro'
+                            : 'Stopwatch'
+                    }
+                </div>
             </motion.div>
         </div>
     );

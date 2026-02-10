@@ -43,7 +43,13 @@ export const useTimer = ({
     const workerRef = useRef(null);
     const lastTickRef = useRef(0);
     const voiceAnnouncementsRef = useRef(voiceAnnouncements);
-    useEffect(() => { voiceAnnouncementsRef.current = voiceAnnouncements; }, [voiceAnnouncements]);
+    useEffect(() => { 
+        voiceAnnouncementsRef.current = voiceAnnouncements; 
+        // Pre-warm voices when toggled on
+        if (voiceAnnouncements && 'speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+        }
+    }, [voiceAnnouncements]);
     const voiceMilestonesRef = useRef(voiceAnnouncementMilestones);
     useEffect(() => { voiceMilestonesRef.current = voiceAnnouncementMilestones; }, [voiceAnnouncementMilestones]);
     const voiceFinalWarningRef = useRef(voiceFinalWarning);
@@ -111,47 +117,61 @@ export const useTimer = ({
             }
         }
 
-        // 3. Spoken Announcements (Milestone-based)
-        if (voiceAnnouncementsRef.current && 'speechSynthesis' in window && timerMode === 'countdown') {
-            const remainingMs = Math.max(0, targetTimeRef.current * 1000 - currentMs);
-            const remainingSec = Math.floor(remainingMs / 1000);
-            const prevRemainingSec = Math.floor(Math.max(0, targetTimeRef.current * 1000 - prevMs) / 1000);
-
-            // Check milestones
-            const milestones = voiceMilestonesRef.current || [];
-            for (const milestone of milestones) {
-                if (remainingSec <= milestone && prevRemainingSec > milestone) {
-                    const mins = Math.floor(milestone / 60);
-                    const secs = milestone % 60;
-                    let text = "";
-                    if (mins > 0 && secs > 0) text = `${mins} minute${mins > 1 ? 's' : ''} and ${secs} seconds remaining`;
-                    else if (mins > 0) text = `${mins} minute${mins > 1 ? 's' : ''} remaining`;
-                    else text = `${secs} seconds remaining`;
-
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    const voices = window.speechSynthesis.getVoices();
-                    const selectedVoice = voices.find(v => v.name === voiceSelectionRef.current);
-                    if (selectedVoice) utterance.voice = selectedVoice;
-                    utterance.volume = volume / 100;
-                    utterance.rate = 0.9;
-                    utterance.pitch = 1.0;
-                    window.speechSynthesis.speak(utterance);
-                    break; // Only announce one milestone per tick
-                }
-            }
-
-            // Final warning (special announcement)
-            const finalWarning = voiceFinalWarningRef.current || 30;
-            if (remainingSec <= finalWarning && prevRemainingSec > finalWarning) {
-                const text = `Warning! ${finalWarning} seconds remaining!`;
+        // 3. Spoken Announcements
+        if (voiceAnnouncementsRef.current && 'speechSynthesis' in window) {
+            const speakText = (text, rate = 0.9, pitch = 1.0) => {
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 const voices = window.speechSynthesis.getVoices();
                 const selectedVoice = voices.find(v => v.name === voiceSelectionRef.current);
-                if (selectedVoice) utterance.voice = selectedVoice;
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                } else if (voices.length > 0) {
+                    utterance.voice = voices[0];
+                }
                 utterance.volume = volume / 100;
-                utterance.rate = 1.0; // Slightly faster for urgency
-                utterance.pitch = 1.1; // Slightly higher pitch for urgency
+                utterance.rate = rate;
+                utterance.pitch = pitch;
                 window.speechSynthesis.speak(utterance);
+            };
+
+            const formatMilestoneText = (seconds, isElapsed) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                const suffix = isElapsed ? 'elapsed' : 'remaining';
+                if (mins > 0 && secs > 0) return `${mins} minute${mins > 1 ? 's' : ''} and ${secs} seconds ${suffix}`;
+                if (mins > 0) return `${mins} minute${mins > 1 ? 's' : ''} ${suffix}`;
+                return `${secs} seconds ${suffix}`;
+            };
+
+            if (timerMode === 'countdown' || pomodoroEnabled) {
+                const remainingMs = Math.max(0, targetTimeRef.current * 1000 - currentMs);
+                const remainingSec = Math.floor(remainingMs / 1000);
+                const prevRemainingSec = Math.floor(Math.max(0, targetTimeRef.current * 1000 - prevMs) / 1000);
+
+                const milestones = voiceMilestonesRef.current || [];
+                for (const milestone of milestones) {
+                    if (remainingSec === milestone && prevRemainingSec > milestone) {
+                        speakText(formatMilestoneText(milestone, false));
+                        break;
+                    }
+                }
+
+                const finalWarning = voiceFinalWarningRef.current || 30;
+                if (remainingSec === finalWarning && prevRemainingSec > finalWarning) {
+                    speakText(`Warning! ${finalWarning} seconds remaining!`, 1.0, 1.1);
+                }
+            } else {
+                const elapsedSec = Math.floor(currentMs / 1000);
+                const prevElapsedSec = Math.floor(prevMs / 1000);
+
+                const milestones = voiceMilestonesRef.current || [];
+                for (const milestone of milestones) {
+                    if (elapsedSec === milestone && prevElapsedSec < milestone) {
+                        speakText(formatMilestoneText(milestone, true));
+                        break;
+                    }
+                }
             }
         }
     }, [availableSounds, WARNING_SOUNDS, playSound, vibrate, safeTriggerAdd, finalSound, pomodoroEnabled, pomodoroPhase, pomodoroBreakTime, pomodoroWorkTime, showToast, volume, timerMode]);

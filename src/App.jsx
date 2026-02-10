@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import './index.css';
 
-// --- COMPONENTS ---
 import SettingsOverlay from './components/SettingsOverlay';
 import ToastContainer from './components/Toast';
 import ShortcutsModal from './components/ShortcutsModal';
@@ -291,21 +289,30 @@ function App() {
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflowY: 'auto' }}>
+    <div style={{
+      width: '100%',
+      height: '100%',
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    }}>
 
-      {/* BACKGROUND EFFECTS */}
       <AnimatePresence>
         {timer.isRunning && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.1 }}
+            animate={{ opacity: 0.08 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
             style={{
               position: 'fixed',
               inset: 0,
-              background: `radial-gradient(circle at center, ${getCurrentColor()}, transparent)`,
+              background: `radial-gradient(ellipse at 50% 40%, ${getCurrentColor()}, transparent 70%)`,
               zIndex: 0,
-              pointerEvents: 'none'
+              pointerEvents: 'none',
             }}
           />
         )}
@@ -313,8 +320,15 @@ function App() {
 
       <LapHistory laps={timer.laps} setLaps={timer.setLaps} formatLapTime={formatLapTime} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10, position: 'relative' }}>
-
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+        position: 'relative',
+        flex: 1,
+      }}>
         <TimerDisplay
           elapsedTime={timer.elapsedTime}
           isRunning={timer.isRunning}
@@ -328,8 +342,26 @@ function App() {
 
         <AnimatePresence>
           {!timer.isRunning && timer.elapsedTime > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ marginTop: '20px', color: '#fbbf24', fontWeight: 700 }}>
-              ⏸ PAUSED
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              style={{
+                marginTop: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 16px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.15)',
+                color: 'var(--accent-amber)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+              }}
+            >
+              PAUSED
             </motion.div>
           )}
         </AnimatePresence>
@@ -343,6 +375,9 @@ function App() {
         undoReset={timer.undoReset}
         handleLap={timer.handleLap}
         setIsSettingsOpen={setIsSettingsOpen}
+        timerMode={timer.timerMode}
+        setTimerMode={timer.setTimerMode}
+        onShowShortcuts={() => setIsShortcutsOpen(true)}
       />
 
       <SettingsOverlay

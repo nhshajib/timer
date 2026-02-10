@@ -40,11 +40,6 @@ const upload = multer({ storage });
 
 // --- ENDPOINTS ---
 
-// 0. Root Status
-app.get('/', (req, res) => {
-    res.send('Antigravity Audio Server is Running. API available at /api/sounds');
-});
-
 // 1. List Sounds
 app.get('/api/sounds', (req, res) => {
     fs.readdir(UPLOAD_DIR, (err, files) => {
