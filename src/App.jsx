@@ -32,9 +32,6 @@ function App() {
   });
   const [availableSounds, setAvailableSounds] = useState({});
   const [toasts, setToasts] = useState([]);
-  const [presets, setPresets] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('timer-presets') || '[]'); } catch { return []; }
-  });
   const [sessionHistory, setSessionHistory] = useState(() => {
     try { return JSON.parse(localStorage.getItem('session-history') || '[]'); } catch { return []; }
   });
@@ -57,6 +54,7 @@ function App() {
 
   // Theme State: 'dark' or 'light'
   const [theme, setTheme] = useState(() => localStorage.getItem('timer-theme') || 'dark');
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem('focus-mode') === 'true');
 
   useEffect(() => {
     localStorage.setItem('timer-theme', theme);
@@ -132,6 +130,7 @@ function App() {
   const timer = useTimer({
     initialTargetTime: parseInt(localStorage.getItem('stopwatch-target') || (5 * 60)),
     initialTimerMode: localStorage.getItem('timer-mode') || 'stopwatch',
+    initialPomodoroEnabled: localStorage.getItem('pomodoro-enabled') === 'true',
     playSound,
     showToast,
     vibrate,
@@ -176,8 +175,10 @@ function App() {
     localStorage.setItem('voice-final-warning', voiceFinalWarning.toString());
     localStorage.setItem('voice-selection', voiceSelection);
     localStorage.setItem('session-history', JSON.stringify(sessionHistory));
+    localStorage.setItem('pomodoro-enabled', timer.pomodoroEnabled.toString());
+    localStorage.setItem('focus-mode', focusMode.toString());
     document.documentElement.style.setProperty('--clock-scale', clockScale.toString());
-  }, [timer.targetTime, warnings, timer.timerMode, volume, clockScale, colorThresholds, reducedMotion, highContrast, vibrationEnabled, sessionHistory, voiceAnnouncements, voiceAnnouncementMilestones, voiceFinalWarning, voiceSelection]);
+  }, [timer.targetTime, timer.pomodoroEnabled, warnings, timer.timerMode, volume, clockScale, colorThresholds, reducedMotion, highContrast, vibrationEnabled, sessionHistory, voiceAnnouncements, voiceAnnouncementMilestones, voiceFinalWarning, voiceSelection, focusMode]);
 
   // --- AUDIO DISCOVERY ---
   useEffect(() => {
@@ -276,8 +277,9 @@ function App() {
     return `${Math.floor(totalSec / 60)}:${(totalSec % 60).toString().padStart(2, '0')}`;
   };
 
-  const isCountdownOvertime = timer.timerMode === 'countdown' && timer.elapsedTime >= timer.targetTime * 1000;
+  const isCountdownOvertime = timer.timerMode === 'countdown' && timer.targetTime > 0 && timer.elapsedTime >= timer.targetTime * 1000;
   const overtimeMs = isCountdownOvertime ? timer.elapsedTime - timer.targetTime * 1000 : 0;
+
   const formatOvertime = (ms) => {
     const sec = Math.floor(ms / 1000);
     return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
@@ -317,8 +319,8 @@ function App() {
       showToast('No laps to export!', 'error');
       return;
     }
-    const csvContent = "data:text/csv;charset=utf-8,ID,Timestamp,Duration (ms)\n"
-      + timer.laps.map(l => `${l.id},${new Date(l.timestamp).toLocaleTimeString()},${l.duration}`).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8,ID,Number,LapTimeMs,SplitMs\n"
+      + timer.laps.map(l => `${l.id},${l.number},${l.time},${l.split}`).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -373,13 +375,22 @@ function App() {
         setTargetTime={timer.setTargetTime}
         toggleTimer={handleToggle}
         handleReset={handleReset}
+        handleLap={timer.handleLap}
         formatTime={formatTime}
+        formatLapTime={formatLapTime}
         progressPercent={progressPercent}
         isOvertime={isCountdownOvertime}
         overtimeMs={overtimeMs}
         formatOvertime={formatOvertime}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
         clockColor={timer.timerMode === 'countdown' ? getCurrentColor() : undefined}
+        laps={timer.laps}
+        setLaps={timer.setLaps}
+        pomodoroEnabled={timer.pomodoroEnabled}
+        focusMode={focusMode}
+        pomodoroPhase={timer.pomodoroPhase}
+        pomodoroCount={timer.pomodoroCount}
       />
 
       <SettingsOverlay
@@ -414,6 +425,11 @@ function App() {
         setTheme={setTheme}
         sessionHistory={sessionHistory}
         pomodoroCount={timer.pomodoroCount}
+        pomodoroEnabled={timer.pomodoroEnabled}
+        setPomodoroEnabled={timer.setPomodoroEnabled}
+        setTimerMode={timer.setTimerMode}
+        focusMode={focusMode}
+        setFocusMode={setFocusMode}
         voiceAnnouncements={voiceAnnouncements}
         setVoiceAnnouncements={setVoiceAnnouncements}
         voiceAnnouncementMilestones={voiceAnnouncementMilestones}

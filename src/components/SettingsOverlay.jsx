@@ -65,6 +65,11 @@ const SettingsOverlay = ({
     setTheme,
     sessionHistory,
     pomodoroCount,
+    pomodoroEnabled,
+    setPomodoroEnabled,
+    setTimerMode,
+    focusMode,
+    setFocusMode,
     voiceAnnouncements,
     setVoiceAnnouncements,
     voiceAnnouncementMilestones,
@@ -206,6 +211,16 @@ const SettingsOverlay = ({
                                                 ))}
                                             </div>
                                         </div>
+
+                                        <SectionCard title="Pomodoro mode">
+                                            <div className="setting-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Pomodoro (25 min work / 5 min break)</div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>Auto-cycle between work and break periods</div>
+                                                </div>
+                                                <Toggle checked={pomodoroEnabled} onChange={(v) => { setPomodoroEnabled(v); if (v) { setTimerMode('countdown'); setTargetTime(25 * 60); } }} />
+                                            </div>
+                                        </SectionCard>
 
                                         <SectionCard title="Target duration">
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -633,6 +648,13 @@ const SettingsOverlay = ({
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Vibration</span>
                                                     <Toggle checked={vibrationEnabled} onChange={setVibrationEnabled} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Focus Mode</span>
+                                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Hide header when timer is running</div>
+                                                    </div>
+                                                    <Toggle checked={focusMode} onChange={setFocusMode} />
                                                 </div>
                                             </div>
                                         </SectionCard>

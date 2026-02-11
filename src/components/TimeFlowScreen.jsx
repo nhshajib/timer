@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings, Keyboard, Flag } from 'lucide-react';
+import LapHistory from './LapHistory';
 
 const TimeFlowScreen = ({
   timerMode,
@@ -10,13 +11,22 @@ const TimeFlowScreen = ({
   setTargetTime,
   toggleTimer,
   handleReset,
+  handleLap,
   formatTime,
+  formatLapTime,
   progressPercent,
   isOvertime,
   overtimeMs,
   formatOvertime,
   onOpenSettings,
+  onOpenShortcuts,
   clockColor,
+  laps,
+  setLaps,
+  pomodoroEnabled,
+  pomodoroPhase,
+  pomodoroCount,
+  focusMode,
 }) => {
   const isCountdown = timerMode === 'countdown';
   const totalTargetSec = targetTime;
@@ -74,6 +84,7 @@ const TimeFlowScreen = ({
 
   return (
     <div className="timer-page">
+      {(!focusMode || !isRunning) && (
       <header className="timer-page-header">
         <div className="timer-header-inner">
           <h1 className="timer-app-title">Antigravity Timer</h1>
@@ -97,6 +108,15 @@ const TimeFlowScreen = ({
             <button
               type="button"
               className="timer-settings-btn"
+              onClick={onOpenShortcuts}
+              aria-label="Keyboard shortcuts"
+              title="Shortcuts (?)"
+            >
+              <Keyboard size={18} />
+            </button>
+            <button
+              type="button"
+              className="timer-settings-btn"
               onClick={onOpenSettings}
               aria-label="Settings"
               title="Settings"
@@ -106,6 +126,19 @@ const TimeFlowScreen = ({
           </div>
         </div>
       </header>
+      )}
+
+      {focusMode && isRunning && (
+        <button
+          type="button"
+          className="timer-focus-mode-settings"
+          onClick={onOpenSettings}
+          aria-label="Settings"
+          title="Settings (S)"
+        >
+          <Settings size={18} />
+        </button>
+      )}
 
       <main className="timer-main">
         <div className="timer-main-inner">
@@ -122,6 +155,12 @@ const TimeFlowScreen = ({
                   {hours > 0 && `${hours.toString().padStart(2, '0')}:`}
                   {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
                 </div>
+                {pomodoroEnabled && !isOvertime && (
+                  <div className={`timer-pomodoro-badge timer-pomodoro-${pomodoroPhase}`} role="status">
+                    <span>{pomodoroPhase === 'work' ? 'Work' : 'Break'}</span>
+                    {pomodoroCount > 0 && <span className="timer-pomodoro-count">#{pomodoroCount}</span>}
+                  </div>
+                )}
                 {isOvertime && overtimeMs > 0 && (
                   <div className="timer-overtime-badge" role="status" aria-live="polite">
                     <span className="overtime-value">{formatOvertime(overtimeMs)}</span>
@@ -203,6 +242,17 @@ const TimeFlowScreen = ({
           </div>
 
           <div className="timer-control-bar">
+            {isRunning && (
+              <button
+                type="button"
+                className="timer-control-btn btn-control-lap"
+                onClick={handleLap}
+                title="Record lap"
+              >
+                <Flag size={20} strokeWidth={2.25} />
+                <span className="btn-label">Lap</span>
+              </button>
+            )}
             <button
               type="button"
               className="timer-control-btn btn-control-reset"
@@ -227,6 +277,15 @@ const TimeFlowScreen = ({
               <span className="btn-label">{isRunning ? 'Pause' : 'Start'}</span>
             </button>
           </div>
+
+          {laps && laps.length > 0 && (
+            <LapHistory
+              laps={laps}
+              setLaps={setLaps}
+              formatLapTime={formatLapTime}
+              variant="below"
+            />
+          )}
         </div>
       </main>
     </div>
