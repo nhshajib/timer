@@ -277,8 +277,8 @@ function App() {
     return `${Math.floor(totalSec / 60)}:${(totalSec % 60).toString().padStart(2, '0')}`;
   };
 
-  const isCountdownOvertime = timer.timerMode === 'countdown' && timer.targetTime > 0 && timer.elapsedTime >= timer.targetTime * 1000;
-  const overtimeMs = isCountdownOvertime ? timer.elapsedTime - timer.targetTime * 1000 : 0;
+  const isOvertime = timer.targetTime > 0 && timer.elapsedTime >= timer.targetTime * 1000;
+  const overtimeMs = isOvertime ? timer.elapsedTime - timer.targetTime * 1000 : 0;
 
   const formatOvertime = (ms) => {
     const sec = Math.floor(ms / 1000);
@@ -291,6 +291,7 @@ function App() {
   };
 
   const getCurrentColor = () => {
+    if (timer.targetTime <= 0) return undefined;
     const remaining = timer.targetTime - (timer.elapsedTime / 1000);
     const sorted = [...colorThresholds].sort((a, b) => b.time - a.time);
     let color = '#22c55e'; /* traffic green when running (above warning threshold) */
@@ -379,12 +380,12 @@ function App() {
         formatTime={formatTime}
         formatLapTime={formatLapTime}
         progressPercent={progressPercent}
-        isOvertime={isCountdownOvertime}
+        isOvertime={isOvertime}
         overtimeMs={overtimeMs}
         formatOvertime={formatOvertime}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
-        clockColor={timer.timerMode === 'countdown' ? getCurrentColor() : undefined}
+        clockColor={timer.targetTime > 0 ? getCurrentColor() : undefined}
         laps={timer.laps}
         setLaps={timer.setLaps}
         pomodoroEnabled={timer.pomodoroEnabled}

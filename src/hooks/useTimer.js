@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export const useTimer = ({
     initialTargetTime,
     initialTimerMode,
+    initialPomodoroEnabled = false,
     playSound,
     showToast,
     vibrate,
@@ -27,7 +28,7 @@ export const useTimer = ({
     const [laps, setLaps] = useState([]);
 
     // --- Pomodoro State ---
-    const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+    const [pomodoroEnabled, setPomodoroEnabled] = useState(initialPomodoroEnabled);
     const [pomodoroPhase, setPomodoroPhase] = useState('work'); // 'work' or 'break'
     const [pomodoroCount, setPomodoroCount] = useState(0);
 
