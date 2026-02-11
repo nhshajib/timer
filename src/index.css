@@ -203,7 +203,7 @@
   text-shadow: 0 0 40px rgba(255,255,255,0.5), 0 1px 4px rgba(0,0,0,0.08);
 }
 .timer-clock-display.overtime {
-  color: var(--accent-red);
+  color: #dc2626; /* traffic red */
   text-shadow: 0 0 48px rgba(248, 113, 113, 0.35), 0 2px 8px rgba(248, 113, 113, 0.2);
 }
 .timer-clock-wrap {
@@ -220,18 +220,18 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 28px 64px -32px rgba(15, 23, 42, 0.12);
 }
 .timer-clock-wrap.overtime-active {
-  border-color: rgba(248, 113, 113, 0.25);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(248, 113, 113, 0.12), 0 24px 56px -28px rgba(0,0,0,0.35);
+  border-color: rgba(220, 38, 38, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(220, 38, 38, 0.15), 0 24px 56px -28px rgba(0,0,0,0.35);
 }
 
 /* Overtime attention animation */
 @keyframes overtime-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 20px rgba(248, 113, 113, 0.4)); }
-  50% { opacity: 0.95; transform: scale(1.02); filter: drop-shadow(0 0 40px rgba(248, 113, 113, 0.7)); }
+  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 20px rgba(220, 38, 38, 0.4)); }
+  50% { opacity: 0.95; transform: scale(1.02); filter: drop-shadow(0 0 40px rgba(220, 38, 38, 0.6)); }
 }
 @keyframes overtime-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.25), 0 0 60px rgba(248, 113, 113, 0.15); }
-  50% { box-shadow: 0 0 0 8px rgba(248, 113, 113, 0.08), 0 0 80px rgba(248, 113, 113, 0.35); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2), 0 0 60px rgba(220, 38, 38, 0.12); }
+  50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0.08), 0 0 80px rgba(220, 38, 38, 0.3); }
 }
 @keyframes overtime-badge {
   0%, 100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -247,7 +247,7 @@
 }
 .timer-clock.overtime {
   animation: overtime-pulse 1.5s ease-in-out infinite;
-  color: var(--accent-red) !important;
+  color: #dc2626 !important; /* traffic red */
 }
 .timer-overtime-wrap {
   position: relative;
@@ -265,16 +265,16 @@
   gap: 8px;
   margin-top: 14px;
   padding: 10px 20px;
-  background: rgba(248, 113, 113, 0.15);
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.4);
   border-radius: var(--radius-full);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--accent-red);
+  color: #dc2626;
   text-transform: uppercase;
   animation: overtime-badge 1.2s ease-in-out infinite;
-  box-shadow: 0 0 24px rgba(248, 113, 113, 0.2);
+  box-shadow: 0 0 24px rgba(220, 38, 38, 0.2);
 }
 .timer-overtime-badge .overtime-value {
   font-variant-numeric: tabular-nums;

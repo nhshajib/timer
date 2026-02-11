@@ -21,8 +21,8 @@ const WARNING_SOUNDS = {
 };
 
 const DEFAULT_COLORS = [
-  { id: 1, time: 30, color: '#fbbf24', type: 'warning' },
-  { id: 2, time: 0, color: '#ef4444', type: 'final' }
+  { id: 1, time: 30, color: '#eab308', type: 'warning' },   /* traffic yellow */
+  { id: 2, time: 0, color: '#dc2626', type: 'final' }      /* traffic red */
 ];
 
 function App() {
@@ -291,7 +291,7 @@ function App() {
   const getCurrentColor = () => {
     const remaining = timer.targetTime - (timer.elapsedTime / 1000);
     const sorted = [...colorThresholds].sort((a, b) => b.time - a.time);
-    let color = 'rgba(96, 165, 250, 0.7)';
+    let color = '#22c55e'; /* traffic green when running (above warning threshold) */
     for (const threshold of sorted) {
       if (remaining <= threshold.time) color = threshold.color;
     }

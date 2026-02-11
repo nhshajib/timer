@@ -197,7 +197,7 @@ const TimeFlowScreen = ({
             <div className="timer-progress-track">
               <div
                 className="timer-progress-bar"
-                style={{ width: `${progress}%`, background: isOvertime ? 'var(--accent-red)' : 'var(--accent-primary)' }}
+                style={{ width: `${progress}%`, background: isOvertime ? '#dc2626' : 'var(--accent-primary)' }}
               />
             </div>
           </div>
