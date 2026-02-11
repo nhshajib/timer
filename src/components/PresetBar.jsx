@@ -1,54 +1,38 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const PresetBar = ({ isRunning, elapsedTime, setTargetTime, setisRunning, showToast }) => {
-    if (isRunning || elapsedTime > 0) return null;
+const DEFAULT_PRESETS = [5, 10, 15, 25, 30, 45, 60];
 
-    const presets = [5, 10, 15, 25, 30];
+const PresetBar = ({ isCountdown, isRunning, elapsedTime, onPresetSelect, customPresets = [] }) => {
+    if (!isCountdown || isRunning || elapsedTime > 0) return null;
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            style={{
-                display: 'flex',
-                gap: '12px',
-                marginTop: '32px',
-                marginBottom: '32px',
-                zIndex: 50,
-                position: 'relative'
-            }}
+            className="timer-preset-bar"
         >
-            {presets.map(min => (
+            {DEFAULT_PRESETS.map(min => (
                 <button
-                    key={min}
-                    onClick={() => {
-                        setTargetTime(min * 60);
-                        setisRunning(true);
-                        showToast(`Started ${min} minute timer`, 'success', 2000);
-                    }}
-                    style={{
-                        background: 'rgba(96, 165, 250, 0.15)',
-                        border: '1px solid rgba(96, 165, 250, 0.3)',
-                        color: '#60a5fa',
-                        padding: '10px 18px',
-                        borderRadius: '12px',
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        backdropFilter: 'blur(12px)',
-                        transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(96, 165, 250, 0.25)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.background = 'rgba(96, 165, 250, 0.15)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                    }}
+                    key={`d-${min}`}
+                    type="button"
+                    onClick={() => onPresetSelect(min)}
+                    className="timer-preset-btn"
+                    aria-label={`Set ${min} minute timer`}
                 >
                     {min}m
+                </button>
+            ))}
+            {(customPresets || []).filter((p) => p && (p.minutes ?? p.min) > 0).map((p) => (
+                <button
+                    key={p.id || `c-${(p.minutes ?? p.min)}-${p.label || ''}`}
+                    type="button"
+                    onClick={() => onPresetSelect(p.minutes ?? p.min)}
+                    className="timer-preset-btn timer-preset-custom"
+                    aria-label={`Set ${p.label} (${p.minutes} min)`}
+                    title={`${p.minutes} min`}
+                >
+                    {p.label}
                 </button>
             ))}
         </motion.div>

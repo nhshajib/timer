@@ -1,138 +1,94 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Flag } from 'lucide-react';
+import { Trash2, Flag, ChevronDown, ChevronUp } from 'lucide-react';
 
-const LapHistory = ({ laps, setLaps, formatLapTime }) => {
+const LapHistory = ({ laps, setLaps, formatLapTime, variant = 'sidebar' }) => {
     if (laps.length === 0) return null;
+
+    const [collapsed, setCollapsed] = useState(false);
+    const isBelow = variant === 'below';
+
+    const header = (
+        <div className="lap-history-header">
+            <button
+                type="button"
+                onClick={isBelow ? () => setCollapsed(c => !c) : undefined}
+                className={`lap-history-title-btn ${isBelow ? 'lap-history-title-btn-clickable' : ''}`}
+                aria-expanded={isBelow ? !collapsed : undefined}
+            >
+                <Flag size={12} style={{ color: 'var(--accent-cyan)' }} />
+                <span>Laps ({laps.length})</span>
+                {isBelow && (collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />)}
+            </button>
+            <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setLaps([]); }}
+                className="lap-history-clear-btn"
+                title="Clear Laps"
+                aria-label="Clear all laps"
+            >
+                <Trash2 size={13} />
+            </button>
+        </div>
+    );
+
+    const content = (
+        <div className="lap-history-list">
+            <AnimatePresence>
+                {laps.map((lap, idx) => (
+                    <motion.div
+                        key={lap.id}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -12 }}
+                        transition={{ delay: idx * 0.03 }}
+                        className={`lap-history-item ${idx === 0 ? 'lap-history-item-latest' : ''}`}
+                    >
+                        <span className="lap-history-num">#{laps.length - idx}</span>
+                        <div className="lap-history-times">
+                            <span className="lap-history-time">{formatLapTime(lap.time)}</span>
+                            <span className="lap-history-split">+{formatLapTime(lap.split)}</span>
+                        </div>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+        </div>
+    );
+
+    if (isBelow) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`lap-history lap-history-below ${collapsed ? 'lap-history-collapsed' : ''}`}
+            >
+                <div className="lap-history-panel">
+                    {header}
+                    {!collapsed && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ overflow: 'hidden' }}
+                        >
+                            {content}
+                        </motion.div>
+                    )}
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            style={{
-                position: 'fixed',
-                left: '24px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '220px',
-                maxHeight: '55vh',
-                zIndex: 5,
-                display: 'flex',
-                flexDirection: 'column',
-            }}
+            className="lap-history lap-history-sidebar"
         >
-            <div className="glass-panel" style={{
-                padding: '16px',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-            }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '12px',
-                    paddingBottom: '10px',
-                    borderBottom: '1px solid var(--glass-border)',
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                    }}>
-                        <Flag size={12} style={{ color: 'var(--accent-cyan)' }} />
-                        <span style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.1em',
-                            color: 'var(--text-muted)',
-                        }}>
-                            Laps ({laps.length})
-                        </span>
-                    </div>
-                    <button
-                        onClick={() => setLaps([])}
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--accent-red)',
-                            opacity: 0.5,
-                            cursor: 'pointer',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            transition: 'opacity 0.2s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
-                        title="Clear Laps"
-                    >
-                        <Trash2 size={13} />
-                    </button>
-                </div>
-
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    overflowY: 'auto',
-                    maxHeight: 'calc(55vh - 60px)',
-                    paddingRight: '4px',
-                }}>
-                    <AnimatePresence>
-                        {laps.map((lap, idx) => (
-                            <motion.div
-                                key={lap.id}
-                                initial={{ opacity: 0, x: -12 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -12 }}
-                                transition={{ delay: idx * 0.03 }}
-                                style={{
-                                    padding: '8px 10px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    borderRadius: 'var(--radius-sm)',
-                                    background: idx === 0 ? 'rgba(99, 102, 241, 0.06)' : 'transparent',
-                                    transition: 'background 0.2s',
-                                }}
-                            >
-                                <span style={{
-                                    fontWeight: 700,
-                                    color: 'var(--accent-cyan)',
-                                    fontSize: '0.7rem',
-                                    fontFamily: "'JetBrains Mono', monospace",
-                                    minWidth: '28px',
-                                }}>
-                                    #{laps.length - idx}
-                                </span>
-                                <div style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-end',
-                                    gap: '1px',
-                                }}>
-                                    <span style={{
-                                        fontWeight: 700,
-                                        fontSize: '0.85rem',
-                                        fontFamily: "'JetBrains Mono', monospace",
-                                        color: 'var(--text-primary)',
-                                    }}>
-                                        {formatLapTime(lap.time)}
-                                    </span>
-                                    <span style={{
-                                        fontSize: '0.65rem',
-                                        color: 'var(--text-muted)',
-                                        fontFamily: "'JetBrains Mono', monospace",
-                                    }}>
-                                        +{formatLapTime(lap.split)}
-                                    </span>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
+            <div className="glass-panel lap-history-panel">
+                {header}
+                {content}
             </div>
         </motion.div>
     );

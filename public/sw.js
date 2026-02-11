@@ -1,27 +1,34 @@
-const CACHE_NAME = 'antigravity-timer-v1';
+const CACHE_NAME = 'antigravity-timer-v2';
 const urlsToCache = [
     '/',
     '/index.html',
-    '/manifest.json'
+    '/manifest.json',
+    '/icon-192.svg',
+    '/icon-512.svg'
 ];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => cache.addAll(urlsToCache))
+            .catch(() => {})
     );
     self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then((response) => {
-                if (response) {
-                    return response;
+                if (response.ok && response.type === 'basic') {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                 }
-                return fetch(event.request);
+                return response;
             })
+            .catch(() => caches.match(event.request))
+            .then((cached) => cached || (event.request.mode === 'navigate' ? caches.match('/index.html') : null))
     );
 });
 

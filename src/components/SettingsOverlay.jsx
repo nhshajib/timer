@@ -120,11 +120,11 @@ const SettingsOverlay = ({
     const targetSec = targetTime % 60;
 
     const tabs = [
-        { id: 'timer-alerts', label: 'Timer & Alerts', icon: Clock },
-        { id: 'sounds', label: 'Sound & Voice', icon: Music },
-        { id: 'visuals', label: 'Appearance', icon: Palette },
-        { id: 'stats', label: 'Stats', icon: BarChart2 },
-        { id: 'preferences', label: 'Preferences', icon: SettingsIcon }
+        { id: 'timer-alerts', label: 'Timer & Alerts', mobileLabel: 'Timer', icon: Clock },
+        { id: 'sounds', label: 'Sound & Voice', mobileLabel: 'Sound', icon: Music },
+        { id: 'visuals', label: 'Appearance', mobileLabel: 'Visuals', icon: Palette },
+        { id: 'stats', label: 'Stats', mobileLabel: 'Stats', icon: BarChart2 },
+        { id: 'preferences', label: 'Preferences', mobileLabel: 'Prefs', icon: SettingsIcon }
     ];
 
     const setQuickPreset = (minutes) => {
@@ -163,10 +163,10 @@ const SettingsOverlay = ({
                             <Play size={12} /> Test
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <input type="number" className="input-modern" value={targetMin} onChange={e => setTargetTime((Math.max(0, parseInt(e.target.value) || 0) * 60) + targetSec)} style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: "'JetBrains Mono', monospace" }} />
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
+                        <input type="number" className="input-modern" value={targetMin} onChange={e => setTargetTime((Math.max(0, parseInt(e.target.value) || 0) * 60) + targetSec)} style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: "'JetBrains Mono', monospace" }} />
                         <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--text-dim)' }}>:</span>
-                        <input type="number" className="input-modern" value={targetSec} onChange={e => setTargetTime((targetMin * 60) + Math.max(0, parseInt(e.target.value) || 0))} style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: "'JetBrains Mono', monospace" }} />
+                        <input type="number" className="input-modern" value={targetSec} onChange={e => setTargetTime((targetMin * 60) + Math.max(0, parseInt(e.target.value) || 0))} style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: "'JetBrains Mono', monospace" }} />
                     </div>
                     <div style={{ marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center' }}>Timer will alert but continue counting</div>
                 </SectionCard>
@@ -349,57 +349,44 @@ const SettingsOverlay = ({
                     style={{ maxWidth: '600px', width: '94%', maxHeight: '88vh' }}
                 >
                     <div className="modal-header settings-modal-header">
-                        <h2 className="settings-modal-title">Settings</h2>
+                        <div className="settings-modal-title-wrap">
+                            <h2 className="settings-modal-title">Settings</h2>
+                        </div>
                         <button type="button" onClick={onClose} className="settings-close-btn" aria-label="Close">
                             <X size={20} />
                         </button>
                     </div>
 
-                    {!isMobile && (
-                        <div className="settings-tabs">
-                            {tabs.map(tab => {
-                                const Icon = tab.icon;
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`settings-tab ${isActive ? 'settings-tab-active' : ''}`}
-                                    >
-                                        <Icon size={18} />
-                                        <span>{tab.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    <div className={`modal-content settings-modal-content ${isMobile ? 'settings-mobile-stack' : ''}`}>
-                        {isMobile ? (
-                            <>
-                                {tabs.map(tab => (
-                                    <section key={tab.id} className="settings-mobile-section">
-                                        <h3 className="settings-mobile-section-title">{tab.label}</h3>
-                                        <div className="settings-mobile-section-content">
-                                            {renderTabContent(tab.id)}
-                                        </div>
-                                    </section>
-                                ))}
-                            </>
-                        ) : (
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={activeTab}
-                                    initial={{ opacity: 0, x: 16 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -16 }}
-                                    transition={{ duration: 0.15 }}
+                    <div className={`settings-tabs ${isMobile ? 'settings-tabs-mobile' : ''}`}>
+                        {tabs.map(tab => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`settings-tab ${isActive ? 'settings-tab-active' : ''}`}
                                 >
-                                    {renderTabContent(activeTab)}
-                                </motion.div>
-                            </AnimatePresence>
-                        )}
+                                    <Icon size={18} />
+                                    <span>{isMobile ? tab.mobileLabel : tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className={`modal-content settings-modal-content ${isMobile ? 'settings-mobile-panel' : ''}`}>
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                initial={isMobile ? { opacity: 0, y: 10 } : { opacity: 0, x: 16 }}
+                                animate={{ opacity: 1, x: 0, y: 0 }}
+                                exit={isMobile ? { opacity: 0, y: 10 } : { opacity: 0, x: -16 }}
+                                transition={{ duration: 0.18 }}
+                            >
+                                {renderTabContent(activeTab)}
+                            </motion.div>
+                        </AnimatePresence>
                     </div>
 
                     <div className="settings-modal-footer">
