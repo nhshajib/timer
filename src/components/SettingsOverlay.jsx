@@ -292,6 +292,7 @@ const SettingsOverlay = ({
                                                 <label className="text-label" style={{ color: 'var(--accent-primary)' }}>Target Duration</label>
                                                 <div
                                                     onClick={() => playSound(finalSound)}
+                                                    title="Test final alarm sound"
                                                     style={{
                                                         cursor: 'pointer',
                                                         display: 'flex',
@@ -344,8 +345,9 @@ const SettingsOverlay = ({
                                                 </select>
                                                 <button
                                                     className="btn-icon"
-                                                    onClick={() => playSound(allSounds[newSound])}
+                                                    onClick={() => playSound(allSounds[newSound] ?? newSound)}
                                                     style={{ width: '40px', height: '40px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }}
+                                                    title="Test sound"
                                                 >
                                                     <Play size={14} />
                                                 </button>
@@ -370,11 +372,12 @@ const SettingsOverlay = ({
                                                     </div>
                                                     <div style={{ flex: 1, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{w.soundKey}</div>
                                                     <button
-                                                        onClick={() => playSound(allSounds[w.soundKey] || WARNING_SOUNDS[w.soundKey])}
+                                                        onClick={() => playSound(allSounds[w.soundKey] ?? WARNING_SOUNDS[w.soundKey] ?? w.soundKey)}
                                                         style={{
                                                             cursor: 'pointer', background: 'transparent', border: 'none',
                                                             color: 'var(--accent-primary)', padding: '4px', display: 'flex',
                                                         }}
+                                                        title="Test sound"
                                                     >
                                                         <Play size={13} />
                                                     </button>

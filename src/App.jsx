@@ -91,11 +91,27 @@ function App() {
   }, [vibrationEnabled]);
 
   const playSound = useCallback((fileOrKey) => {
-    let src = WARNING_SOUNDS[fileOrKey] || availableSounds[fileOrKey] || fileOrKey;
+    if (fileOrKey == null) return;
+    const src = WARNING_SOUNDS[fileOrKey] || availableSounds[fileOrKey] || (typeof fileOrKey === 'string' ? fileOrKey : null);
+    if (!src || typeof src !== 'string') return;
     const audio = new Audio(src);
     audio.volume = volume / 100;
-    audio.play().catch(e => console.error('Audio error:', e));
+    audio.play().catch(e => console.warn('Audio play failed (may be blocked by browser):', e?.message || e));
   }, [availableSounds, volume]);
+
+  // Unlock audio on first timer start so warning sounds can play (browser autoplay policy)
+  const audioUnlockedRef = useRef(false);
+  const prevRunningRef = useRef(false);
+  useEffect(() => {
+    const isRunning = timer?.isRunning ?? false;
+    if (isRunning && !prevRunningRef.current && !audioUnlockedRef.current) {
+      audioUnlockedRef.current = true;
+      const silent = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+      silent.volume = 0;
+      silent.play().catch(() => {});
+    }
+    prevRunningRef.current = isRunning;
+  }, [timer?.isRunning]);
 
   // --- CORE TIMER HOOK ---
   const timer = useTimer({
@@ -369,10 +385,8 @@ function App() {
 
       <ControlBar
         isRunning={timer.isRunning}
-        lastResetState={timer.lastResetState}
         toggleTimer={timer.toggleTimer}
         resetTimer={handleReset}
-        undoReset={timer.undoReset}
         handleLap={timer.handleLap}
         setIsSettingsOpen={setIsSettingsOpen}
         timerMode={timer.timerMode}

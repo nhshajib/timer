@@ -3,10 +3,8 @@ import { Play, Pause, RotateCcw, Timer, Plus, Settings, Keyboard } from 'lucide-
 
 const ControlBar = ({
     isRunning,
-    lastResetState,
     toggleTimer,
     resetTimer,
-    undoReset,
     handleLap,
     setIsSettingsOpen,
     timerMode,
@@ -68,16 +66,6 @@ const ControlBar = ({
                         title="Add Lap"
                     >
                         <Plus size={20} strokeWidth={2.5} />
-                    </motion.button>
-                ) : lastResetState ? (
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="btn-icon accent-amber"
-                        onClick={undoReset}
-                        title="Undo Reset"
-                    >
-                        <RotateCcw size={18} style={{ transform: 'scaleX(-1)' }} />
                     </motion.button>
                 ) : (
                     <motion.button

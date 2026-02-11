@@ -25,7 +25,6 @@ export const useTimer = ({
     const [targetTime, setTargetTime] = useState(initialTargetTime || (5 * 60));
     const [triggeredEvents, setTriggeredEvents] = useState(new Set());
     const [laps, setLaps] = useState([]);
-    const [lastResetState, setLastResetState] = useState(null);
 
     // --- Pomodoro State ---
     const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
@@ -42,6 +41,8 @@ export const useTimer = ({
     const startTimeRef = useRef(null);
     const workerRef = useRef(null);
     const lastTickRef = useRef(0);
+    const playSoundRef = useRef(playSound);
+    useEffect(() => { playSoundRef.current = playSound; }, [playSound]);
     const voiceAnnouncementsRef = useRef(voiceAnnouncements);
     useEffect(() => { 
         voiceAnnouncementsRef.current = voiceAnnouncements; 
@@ -67,17 +68,26 @@ export const useTimer = ({
         });
     }, []);
 
+    const finalSoundRef = useRef(finalSound);
+    const availableSoundsRef = useRef(availableSounds);
+    const warningSoundsRef = useRef(WARNING_SOUNDS);
+    useEffect(() => { finalSoundRef.current = finalSound; }, [finalSound]);
+    useEffect(() => { availableSoundsRef.current = availableSounds; }, [availableSounds]);
+    useEffect(() => { warningSoundsRef.current = WARNING_SOUNDS; }, [WARNING_SOUNDS]);
+
     const checkTriggers = useCallback((currentMs, prevMs, warnings) => {
         const target = targetTimeRef.current * 1000;
         const triggered = triggeredRef.current;
-        const soundMap = availableSounds || {};
+        const soundMap = availableSoundsRef.current || {};
+        const builtIn = warningSoundsRef.current || {};
+        const play = playSoundRef.current;
 
         // 1. Check Intermediate Warnings
-        warnings.forEach(w => {
-            const wTime = w.triggerTime * 1000;
+        (warnings || []).forEach(w => {
+            const wTime = (w.triggerTime ?? 0) * 1000;
             if ((prevMs < wTime && currentMs >= wTime) && !triggered.has(w.id)) {
-                const src = soundMap[w.soundKey] || WARNING_SOUNDS[w.soundKey];
-                if (src) playSound(src);
+                const src = soundMap[w.soundKey] || builtIn[w.soundKey];
+                if (src && play) play(src);
                 vibrate([100]);
                 safeTriggerAdd(w.id);
             }
@@ -86,7 +96,7 @@ export const useTimer = ({
         // 2. Check Final Target
         if (target > 0) {
             if ((prevMs < target && currentMs >= target) && !triggered.has('FINAL')) {
-                playSound(finalSound);
+                if (finalSoundRef.current && play) play(finalSoundRef.current);
                 vibrate([200, 100, 200]);
                 safeTriggerAdd('FINAL');
 
@@ -174,7 +184,7 @@ export const useTimer = ({
                 }
             }
         }
-    }, [availableSounds, WARNING_SOUNDS, playSound, vibrate, safeTriggerAdd, finalSound, pomodoroEnabled, pomodoroPhase, pomodoroBreakTime, pomodoroWorkTime, showToast, volume, timerMode]);
+    }, [vibrate, safeTriggerAdd, pomodoroEnabled, pomodoroPhase, pomodoroBreakTime, pomodoroWorkTime, showToast, volume, timerMode]);
 
     const resetForCycle = () => {
         setElapsedTime(0);
@@ -229,13 +239,6 @@ export const useTimer = ({
     const toggleTimer = useCallback(() => setIsRunning(v => !v), []);
 
     const resetTimer = useCallback(() => {
-        if (elapsedTime > 0 || laps.length > 0) {
-            setLastResetState({
-                elapsedTime,
-                laps: [...laps],
-                triggeredEvents: new Set(triggeredEvents)
-            });
-        }
         setIsRunning(false);
         setElapsedTime(0);
         lastTickRef.current = 0;
@@ -244,18 +247,7 @@ export const useTimer = ({
         setLaps([]);
         if (workerRef.current) workerRef.current.postMessage('STOP');
         showToast('Timer reset', 'info', 5000);
-    }, [elapsedTime, laps, triggeredEvents, showToast]);
-
-    const undoReset = useCallback(() => {
-        if (!lastResetState) return;
-        setElapsedTime(lastResetState.elapsedTime);
-        setLaps(lastResetState.laps);
-        setTriggeredEvents(lastResetState.triggeredEvents);
-        triggeredRef.current = lastResetState.triggeredEvents;
-        lastTickRef.current = lastResetState.elapsedTime;
-        setLastResetState(null);
-        showToast('Reset undone', 'success', 2000);
-    }, [lastResetState, showToast]);
+    }, [showToast]);
 
     const handleLap = useCallback(() => {
         if (!isRunning) return;
@@ -282,7 +274,6 @@ export const useTimer = ({
         triggeredEvents,
         laps,
         setLaps,
-        lastResetState,
         pomodoroEnabled,
         setPomodoroEnabled,
         pomodoroPhase,
@@ -290,7 +281,6 @@ export const useTimer = ({
         setPomodoroCount,
         toggleTimer,
         resetTimer,
-        undoReset,
         handleLap,
         updateWarnings
     };
