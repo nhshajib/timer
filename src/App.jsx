@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 import SettingsOverlay from './components/SettingsOverlay';
 import ToastContainer from './components/Toast';
 import ShortcutsModal from './components/ShortcutsModal';
-import TimerDisplay from './components/TimerDisplay';
-import ControlBar from './components/ControlBar';
-import LapHistory from './components/LapHistory';
+import TimeFlowScreen from './components/TimeFlowScreen';
 
 // --- HOOKS ---
 import { useTimer } from './hooks/useTimer';
@@ -22,6 +19,11 @@ const WARNING_SOUNDS = {
   "Double Beep": doubleBeep,
   "Beep 1": beep1
 };
+
+const DEFAULT_COLORS = [
+  { id: 1, time: 30, color: '#fbbf24', type: 'warning' },
+  { id: 2, time: 0, color: '#ef4444', type: 'final' }
+];
 
 function App() {
   // --- PERSISTENT SETTINGS STATE ---
@@ -63,10 +65,6 @@ function App() {
 
 
   // Visual Customization
-  const DEFAULT_COLORS = [
-    { id: 1, time: 30, color: '#fbbf24', type: 'warning' },
-    { id: 2, time: 0, color: '#ef4444', type: 'final' }
-  ];
   const [clockScale, setClockScale] = useState(() => parseFloat(localStorage.getItem('timer-clock-scale') || '1.0'));
   const [colorThresholds, setColorThresholds] = useState(() => {
     try {
@@ -90,28 +88,43 @@ function App() {
     if (vibrationEnabled && 'vibrate' in navigator) navigator.vibrate(pattern);
   }, [vibrationEnabled]);
 
+  // Resolve asset URL (Vite can pass { default: url } or a string)
+  const resolveSoundSrc = useCallback((fileOrKey) => {
+    if (fileOrKey == null) return null;
+    const raw = typeof fileOrKey === 'object' && fileOrKey?.default != null ? fileOrKey.default : fileOrKey;
+    if (typeof raw !== 'string') return null;
+    return WARNING_SOUNDS[raw] || availableSounds[raw] || raw;
+  }, [availableSounds]);
+
   const playSound = useCallback((fileOrKey) => {
-    if (fileOrKey == null) return;
-    const src = WARNING_SOUNDS[fileOrKey] || availableSounds[fileOrKey] || (typeof fileOrKey === 'string' ? fileOrKey : null);
+    const src = resolveSoundSrc(fileOrKey);
     if (!src || typeof src !== 'string') return;
     const audio = new Audio(src);
-    audio.volume = volume / 100;
-    audio.play().catch(e => console.warn('Audio play failed (may be blocked by browser):', e?.message || e));
-  }, [availableSounds, volume]);
+    audio.volume = Math.max(0, Math.min(1, volume / 100));
+    audio.play().catch(e => console.warn('Audio play failed:', e?.message || e));
+  }, [resolveSoundSrc, volume]);
 
-  // Unlock audio on first timer start so warning sounds can play (browser autoplay policy)
+  // Unlock audio on first user interaction so Test and timer sounds can play (browser autoplay policy)
   const audioUnlockedRef = useRef(false);
-  const prevRunningRef = useRef(false);
   useEffect(() => {
-    const isRunning = timer?.isRunning ?? false;
-    if (isRunning && !prevRunningRef.current && !audioUnlockedRef.current) {
+    const unlock = () => {
+      if (audioUnlockedRef.current) return;
       audioUnlockedRef.current = true;
       const silent = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
       silent.volume = 0;
       silent.play().catch(() => {});
-    }
-    prevRunningRef.current = isRunning;
-  }, [timer?.isRunning]);
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock, { once: true, capture: true });
+    document.addEventListener('touchstart', unlock, { once: true, capture: true });
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+  }, []);
+
+  const timerRef = useRef(null);
 
   // --- CORE TIMER HOOK ---
   const timer = useTimer({
@@ -129,14 +142,16 @@ function App() {
     voiceFinalWarning,
     voiceSelection,
     onSessionComplete: (session) => {
+      const t = timerRef.current;
       setSessionHistory(prev => {
-        const next = [...prev, { ...session, id: Date.now(), lapsCount: timer.laps.length }];
+        const next = [...prev, { ...session, id: Date.now(), lapsCount: t ? t.laps.length : 0 }];
         localStorage.setItem('session-history', JSON.stringify(next));
         return next;
       });
       showToast('Focus session recorded! 🚀', 'success');
     }
   });
+  timerRef.current = timer;
 
   // Sync warnings with hook ref
   useEffect(() => {
@@ -199,22 +214,50 @@ function App() {
     timer.resetTimer();
   }, [timer.elapsedTime, timer.pomodoroEnabled, timer.timerMode, timer.laps.length, timer.resetTimer, showToast]);
 
+  const handleToggle = useCallback(() => {
+    if (timer.timerMode === 'countdown' && timer.targetTime === 0) return;
+    timer.toggleTimer();
+  }, [timer.timerMode, timer.targetTime, timer.toggleTimer]);
+
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
       switch (e.key.toLowerCase()) {
-        case ' ': e.preventDefault(); timer.toggleTimer(); break;
-        case 'r': handleReset(); break;
-        case 'l': timer.handleLap(); break;
-        case 's': setIsSettingsOpen(prev => !prev); break;
-        case '?': e.preventDefault(); setIsShortcutsOpen(true); break;
-        case 'escape': setIsSettingsOpen(false); setIsShortcutsOpen(false); break;
-        case '1': timer.setTargetTime(5 * 60); timer.toggleTimer(); break;
-        case '2': timer.setTargetTime(10 * 60); timer.toggleTimer(); break;
-        case '3': timer.setTargetTime(15 * 60); timer.toggleTimer(); break;
-        case '4': timer.setTargetTime(25 * 60); timer.toggleTimer(); break;
-        case '5': timer.setTargetTime(30 * 60); timer.toggleTimer(); break;
-        default: break;
+        case ' ':
+          e.preventDefault();
+          if (timer.timerMode === 'countdown' && timer.targetTime === 0) break;
+          timer.toggleTimer();
+          break;
+        case 'r':
+          handleReset();
+          break;
+        case 'l':
+          timer.handleLap();
+          break;
+        case 's':
+          setIsSettingsOpen(prev => !prev);
+          break;
+        case '?':
+          e.preventDefault();
+          setIsShortcutsOpen(true);
+          break;
+        case 'escape':
+          setIsSettingsOpen(false);
+          setIsShortcutsOpen(false);
+          break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5': {
+          const mins = { '1': 5, '2': 10, '3': 15, '4': 25, '5': 30 }[e.key.toLowerCase()];
+          timer.setTargetTime(mins * 60);
+          if (timer.timerMode === 'countdown') handleReset();
+          timer.toggleTimer();
+          break;
+        }
+        default:
+          break;
       }
     };
     window.addEventListener('keydown', handleKeyPress);
@@ -226,6 +269,13 @@ function App() {
     const displayMs = timer.timerMode === 'countdown' ? Math.max(0, (timer.targetTime * 1000) - elapsedMs) : elapsedMs;
     const totalSec = Math.floor(displayMs / 1000);
     return `${Math.floor(totalSec / 60)}:${(totalSec % 60).toString().padStart(2, '0')}`;
+  };
+
+  const isCountdownOvertime = timer.timerMode === 'countdown' && timer.elapsedTime >= timer.targetTime * 1000;
+  const overtimeMs = isCountdownOvertime ? timer.elapsedTime - timer.targetTime * 1000 : 0;
+  const formatOvertime = (ms) => {
+    const sec = Math.floor(ms / 1000);
+    return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
   };
 
   const formatLapTime = (ms) => {
@@ -299,11 +349,6 @@ function App() {
     showToast('Visuals reset to default! ✨', 'info');
   };
 
-  const onUpload = (filename) => {
-    setAvailableSounds(prev => ({ ...prev, [filename]: `/custom_sounds/${filename}` }));
-    showToast(`New sound added: ${filename}`, 'success');
-  };
-
   return (
     <div style={{
       width: '100%',
@@ -311,87 +356,25 @@ function App() {
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
       overflow: 'hidden',
     }}>
 
-      <AnimatePresence>
-        {timer.isRunning && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.08 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: `radial-gradient(ellipse at 50% 40%, ${getCurrentColor()}, transparent 70%)`,
-              zIndex: 0,
-              pointerEvents: 'none',
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      <LapHistory laps={timer.laps} setLaps={timer.setLaps} formatLapTime={formatLapTime} />
-
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10,
-        position: 'relative',
-        flex: 1,
-      }}>
-        <TimerDisplay
-          elapsedTime={timer.elapsedTime}
-          isRunning={timer.isRunning}
-          timerMode={timer.timerMode}
-          targetTime={timer.targetTime}
-          formatTime={formatTime}
-          clockScale={clockScale}
-          activeColor={getCurrentColor()}
-          progressPercent={progressPercent}
-        />
-
-        <AnimatePresence>
-          {!timer.isRunning && timer.elapsedTime > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              style={{
-                marginTop: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 16px',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(251, 191, 36, 0.1)',
-                border: '1px solid rgba(251, 191, 36, 0.15)',
-                color: 'var(--accent-amber)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-              }}
-            >
-              PAUSED
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <ControlBar
-        isRunning={timer.isRunning}
-        toggleTimer={timer.toggleTimer}
-        resetTimer={handleReset}
-        handleLap={timer.handleLap}
-        setIsSettingsOpen={setIsSettingsOpen}
+      <TimeFlowScreen
         timerMode={timer.timerMode}
         setTimerMode={timer.setTimerMode}
-        onShowShortcuts={() => setIsShortcutsOpen(true)}
+        isRunning={timer.isRunning}
+        elapsedTime={timer.elapsedTime}
+        targetTime={timer.targetTime}
+        setTargetTime={timer.setTargetTime}
+        toggleTimer={handleToggle}
+        handleReset={handleReset}
+        formatTime={formatTime}
+        progressPercent={progressPercent}
+        isOvertime={isCountdownOvertime}
+        overtimeMs={overtimeMs}
+        formatOvertime={formatOvertime}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        clockColor={timer.timerMode === 'countdown' ? getCurrentColor() : undefined}
       />
 
       <SettingsOverlay
@@ -403,7 +386,6 @@ function App() {
         setWarnings={setWarnings}
         playSound={playSound}
         availableSounds={availableSounds}
-        onUpload={onUpload}
         finalSound={finalSound}
         WARNING_SOUNDS={WARNING_SOUNDS}
         volume={volume}
@@ -435,6 +417,7 @@ function App() {
         setVoiceFinalWarning={setVoiceFinalWarning}
         voiceSelection={voiceSelection}
         setVoiceSelection={setVoiceSelection}
+        showToast={showToast}
       />
 
       <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />

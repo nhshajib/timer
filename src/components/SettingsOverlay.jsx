@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Plus, X, Upload, Trash2, Clock, Bell, Music, Settings as SettingsIcon, Palette, RotateCcw, BarChart2, Sun, Moon, Volume2, Maximize, Minimize, Smartphone } from 'lucide-react';
+import { Play, Plus, X, Trash2, Clock, Music, Settings as SettingsIcon, Palette, RotateCcw, BarChart2, Sun, Moon, Volume2, Maximize, Minimize } from 'lucide-react';
 import StatsDashboard from './StatsDashboard';
 
 const Toggle = ({ checked, onChange, color = 'var(--accent-primary)' }) => (
@@ -26,14 +26,19 @@ const Toggle = ({ checked, onChange, color = 'var(--accent-primary)' }) => (
     </label>
 );
 
-const SectionCard = ({ children, style }) => (
+const SectionCard = ({ title, children, style }) => (
     <div style={{
-        padding: '14px',
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-md)',
+        padding: '20px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 'var(--radius-lg)',
         ...style,
     }}>
+        {title && (
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                {title}
+            </div>
+        )}
         {children}
     </div>
 );
@@ -47,7 +52,6 @@ const SettingsOverlay = ({
     setWarnings,
     playSound,
     availableSounds,
-    onUpload,
     finalSound,
     WARNING_SOUNDS,
     volume,
@@ -78,17 +82,13 @@ const SettingsOverlay = ({
     voiceFinalWarning,
     setVoiceFinalWarning,
     voiceSelection,
-    setVoiceSelection
+    setVoiceSelection,
+    showToast
 }) => {
-    const [activeTab, setActiveTab] = useState('timer');
+    const [activeTab, setActiveTab] = useState('timer-alerts');
     const [newMin, setNewMin] = useState(1);
     const [newSec, setNewSec] = useState(0);
     const [newSound, setNewSound] = useState("Single Beep");
-
-    const [adminPass, setAdminPass] = useState("");
-    const [file, setFile] = useState(null);
-    const [customFilename, setCustomFilename] = useState("");
-    const [uploadStatus, setUploadStatus] = useState("");
 
     const [availableVoices, setAvailableVoices] = useState([]);
     const [tempVoiceSelection, setTempVoiceSelection] = useState(voiceSelection);
@@ -108,36 +108,6 @@ const SettingsOverlay = ({
 
     if (!isOpen) return null;
 
-    const handleUpload = async () => {
-        if (!file) return setUploadStatus("No file selected.");
-        if (!customFilename.trim()) return setUploadStatus("Please enter a filename.");
-
-        setUploadStatus("Uploading...");
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('customFilename', customFilename.trim());
-
-        try {
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                headers: { 'x-admin-password': adminPass },
-                body: formData
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setUploadStatus("Success!");
-                onUpload(data.filename);
-                setFile(null);
-                setCustomFilename("");
-                setTimeout(() => setUploadStatus(""), 2000);
-            } else {
-                setUploadStatus(data.error || "Upload failed");
-            }
-        } catch (e) {
-            setUploadStatus("Error: Server offline?");
-        }
-    };
-
     const addWarning = () => {
         const totalSec = (parseInt(newMin) || 0) * 60 + (parseInt(newSec) || 0);
         if (totalSec <= 0) return;
@@ -153,12 +123,11 @@ const SettingsOverlay = ({
     const targetSec = targetTime % 60;
 
     const tabs = [
-        { id: 'timer', label: 'Timer', icon: Clock },
-        { id: 'alerts', label: 'Alerts', icon: Bell },
-        { id: 'sounds', label: 'Sounds', icon: Music },
-        { id: 'visuals', label: 'Visuals', icon: Palette },
+        { id: 'timer-alerts', label: 'Timer & Alerts', icon: Clock },
+        { id: 'sounds', label: 'Sound & Voice', icon: Music },
+        { id: 'visuals', label: 'Appearance', icon: Palette },
         { id: 'stats', label: 'Stats', icon: BarChart2 },
-        { id: 'preferences', label: 'Prefs', icon: SettingsIcon }
+        { id: 'preferences', label: 'Preferences', icon: SettingsIcon }
     ];
 
     const setQuickPreset = (minutes) => {
@@ -177,80 +146,40 @@ const SettingsOverlay = ({
                 onClick={onClose}
             >
                 <motion.div
-                    initial={{ scale: 0.95, y: 16, opacity: 0 }}
+                    initial={{ scale: 0.96, y: 20, opacity: 0 }}
                     animate={{ scale: 1, y: 0, opacity: 1 }}
-                    exit={{ scale: 0.95, y: 16, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    className="modal-card"
+                    exit={{ scale: 0.96, y: 20, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                    className="modal-card settings-modal"
                     onClick={e => e.stopPropagation()}
-                    style={{ maxWidth: '560px', width: '92%' }}
+                    style={{ maxWidth: '600px', width: '94%', maxHeight: '88vh' }}
                 >
-                    <div className="modal-header">
-                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.01em' }}>Settings</h2>
-                        <button onClick={onClose} style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            border: 'none',
-                            color: 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s',
-                        }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                        >
-                            <X size={18} />
+                    <div className="modal-header settings-modal-header">
+                        <h2 className="settings-modal-title">Settings</h2>
+                        <button type="button" onClick={onClose} className="settings-close-btn" aria-label="Close">
+                            <X size={20} />
                         </button>
                     </div>
 
-                    <div style={{
-                        display: 'flex',
-                        borderBottom: '1px solid var(--glass-border)',
-                        padding: '0 12px',
-                        gap: '2px',
-                        overflowX: 'auto',
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        WebkitOverflowScrolling: 'touch',
-                    }}>
+                    <div className="settings-tabs">
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
                             return (
                                 <button
                                     key={tab.id}
+                                    type="button"
                                     onClick={() => setActiveTab(tab.id)}
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-                                        padding: '10px 12px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.78rem',
-                                        whiteSpace: 'nowrap',
-                                        fontWeight: isActive ? 600 : 500,
-                                        borderBottom: isActive ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                                        transition: 'all 0.2s',
-                                        flexShrink: 0,
-                                        marginBottom: '-1px',
-                                        fontFamily: 'inherit',
-                                    }}
+                                    className={`settings-tab ${isActive ? 'settings-tab-active' : ''}`}
                                 >
-                                    <Icon size={14} />
+                                    <Icon size={18} />
                                     <span>{tab.label}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="modal-content" style={{ minHeight: '280px' }}>
+                    <div className="modal-content settings-modal-content">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
@@ -259,10 +188,11 @@ const SettingsOverlay = ({
                                 exit={{ opacity: 0, x: -16 }}
                                 transition={{ duration: 0.15 }}
                             >
-                                {activeTab === 'timer' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {activeTab === 'timer-alerts' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                         <div>
-                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px' }}>Quick Presets</label>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>Timer</div>
+                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px', fontSize: '0.9rem', fontWeight: 600 }}>Quick Presets</label>
                                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                                 {[5, 10, 15, 25, 30, 45, 60].map(min => (
                                                     <button
@@ -287,9 +217,9 @@ const SettingsOverlay = ({
                                             </div>
                                         </div>
 
-                                        <SectionCard>
+                                        <SectionCard title="Target duration">
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                                <label className="text-label" style={{ color: 'var(--accent-primary)' }}>Target Duration</label>
+                                                <label className="text-label" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Set countdown length</label>
                                                 <div
                                                     onClick={() => playSound(finalSound)}
                                                     title="Test final alarm sound"
@@ -326,15 +256,14 @@ const SettingsOverlay = ({
                                                 Timer will alert but continue counting
                                             </div>
                                         </SectionCard>
-                                    </div>
-                                )}
 
-                                {activeTab === 'alerts' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                        <label className="text-label">Intermediate Alerts</label>
+                                        <div>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>Alerts</div>
+                                            <label className="text-label">Intermediate Alerts</label>
+                                        </div>
 
-                                        <SectionCard>
-                                            <div style={{ fontSize: '0.78rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>Play sound after:</div>
+                                        <SectionCard title="Intermediate alerts">
+                                            <div style={{ fontSize: '0.82rem', marginBottom: '10px', color: 'var(--text-secondary)' }}>Play sound after:</div>
                                             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                                                 <input type="number" className="input-modern" placeholder="Min" value={newMin} onChange={e => setNewMin(e.target.value)} style={{ flex: 1 }} />
                                                 <input type="number" className="input-modern" placeholder="Sec" value={newSec} onChange={e => setNewSec(e.target.value)} style={{ flex: 1 }} />
@@ -436,9 +365,9 @@ const SettingsOverlay = ({
                                             ))}
                                         </div>
 
-                                        <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '14px' }}>
-                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px' }}>Voice Announcements</label>
-                                            <SectionCard>
+                                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px', marginTop: '8px' }}>
+                                            <label className="text-label" style={{ display: 'block', marginBottom: '12px', fontSize: '0.95rem', fontWeight: 600 }}>Voice announcements</label>
+                                            <SectionCard title="Voice feedback">
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: voiceAnnouncements ? '14px' : 0 }}>
                                                     <div>
                                                         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Voice Feedback</div>
@@ -528,7 +457,8 @@ const SettingsOverlay = ({
                                                         </div>
 
                                                         <div>
-                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Final Warning At</div>
+                                                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Final Warning At</div>
+                                                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Voice says &quot;X seconds remaining&quot; when countdown reaches this many seconds left</div>
                                                             <div style={{ display: 'flex', gap: '6px' }}>
                                                                 {[30, 15, 10, 5].map(sec => (
                                                                     <button key={sec} onClick={() => setVoiceFinalWarning(sec)}
@@ -576,6 +506,7 @@ const SettingsOverlay = ({
                                                             </div>
                                                             <button onClick={() => {
                                                                     setVoiceSelection(tempVoiceSelection);
+                                                                    if (showToast) showToast('Voice saved! ✓', 'success', 2500);
                                                                 }}
                                                                 style={{
                                                                     width: '100%', padding: '7px', marginTop: '8px',
@@ -592,37 +523,19 @@ const SettingsOverlay = ({
                                             </SectionCard>
                                         </div>
 
-                                        <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '14px' }}>
-                                            <label className="text-label" style={{ display: 'block', marginBottom: '10px' }}>Upload Custom Sound</label>
-                                            <SectionCard>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    <input type="password" className="input-modern" placeholder="Admin Password"
-                                                        value={adminPass} onChange={e => setAdminPass(e.target.value)} style={{ fontSize: '0.82rem' }} />
-                                                    <input type="text" className="input-modern" placeholder="Sound Name"
-                                                        value={customFilename} onChange={e => setCustomFilename(e.target.value)} style={{ fontSize: '0.82rem' }} />
-                                                    <input type="file" accept="audio/*" onChange={e => setFile(e.target.files[0])}
-                                                        style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }} />
-                                                    <button onClick={handleUpload}
-                                                        style={{
-                                                            padding: '8px', background: 'var(--accent-primary)', border: 'none',
-                                                            borderRadius: '8px', color: 'white', cursor: 'pointer', fontSize: '0.82rem',
-                                                            fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            gap: '6px', fontFamily: 'inherit',
-                                                        }}
-                                                    >
-                                                        <Upload size={14} /> Upload
-                                                    </button>
-                                                    {uploadStatus && <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', textAlign: 'center' }}>{uploadStatus}</div>}
-                                                </div>
-                                            </SectionCard>
-                                        </div>
+                                        <button
+                                            onClick={() => { if (showToast) showToast('Sound settings saved! ✓', 'success', 2500); }}
+                                            className="settings-save-btn"
+                                        >
+                                            Save sound settings
+                                        </button>
                                     </div>
                                 )}
 
                                 {activeTab === 'visuals' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label className="text-label">Theme</label>
+                                            <label className="text-label" style={{ fontSize: '0.95rem', fontWeight: 600 }}>Theme</label>
                                             <button
                                                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                                                 style={{
@@ -637,8 +550,7 @@ const SettingsOverlay = ({
                                             </button>
                                         </div>
 
-                                        <SectionCard>
-                                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>Clock Scale</div>
+                                        <SectionCard title="Clock scale">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <input
                                                     type="range" min="0.5" max="2.0" step="0.1" value={clockScale}
@@ -651,8 +563,7 @@ const SettingsOverlay = ({
                                             </div>
                                         </SectionCard>
 
-                                        <SectionCard>
-                                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>Color Thresholds</div>
+                                        <SectionCard title="Color thresholds">
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 {colorThresholds.map((threshold, idx) => (
                                                     <div key={threshold.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -773,12 +684,8 @@ const SettingsOverlay = ({
                         </AnimatePresence>
                     </div>
 
-                    <div style={{ padding: '14px 20px', borderTop: '1px solid var(--glass-border)' }}>
-                        <button
-                            onClick={onClose}
-                            className="btn-block"
-                            style={{ fontSize: '0.9rem' }}
-                        >
+                    <div className="settings-modal-footer">
+                        <button type="button" onClick={onClose} className="settings-done-btn">
                             Done
                         </button>
                     </div>

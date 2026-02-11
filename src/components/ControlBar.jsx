@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw, Timer, Plus, Settings, Keyboard } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, Settings, Home } from 'lucide-react';
 
 const ControlBar = ({
     isRunning,
@@ -10,6 +10,7 @@ const ControlBar = ({
     timerMode,
     setTimerMode,
     onShowShortcuts,
+    onGoHome,
 }) => {
     const modes = [
         { id: 'stopwatch', label: 'Stopwatch' },
@@ -36,8 +37,33 @@ const ControlBar = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     className="mode-switcher"
-                    style={{ pointerEvents: 'auto' }}
+                    style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
+                    {onGoHome && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={onGoHome}
+                            title="Back to Home"
+                            style={{
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '8px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                fontFamily: 'inherit',
+                            }}
+                        >
+                            <Home size={16} />
+                            Home
+                        </motion.button>
+                    )}
                     {modes.map(mode => (
                         <button
                             key={mode.id}

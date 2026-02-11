@@ -9,9 +9,12 @@ const TimerDisplay = ({
     formatTime,
     clockScale,
     activeColor,
-    progressPercent
+    progressPercent,
+    isOvertime = false,
+    overtimeMs = 0,
+    formatOvertime = (ms) => `0:${(Math.floor(ms / 1000) % 60).toString().padStart(2, '0')}`,
 }) => {
-    const size = Math.min(340, 340 * clockScale);
+    const size = Math.min(380, 380 * clockScale);
     const strokeWidth = 4;
     const radius = (size - strokeWidth * 2) / 2;
     const circumference = 2 * Math.PI * radius;
@@ -124,12 +127,14 @@ const TimerDisplay = ({
                 <div
                     className="timer-font"
                     style={{
-                        fontSize: `calc(4.5rem * ${clockScale})`,
+                        fontSize: `calc(clamp(4rem, 18vw, 7.5rem) * ${clockScale})`,
+                        fontFamily: "'JetBrains Mono', monospace",
                         fontWeight: 700,
-                        letterSpacing: '-0.02em',
+                        letterSpacing: '-0.03em',
                         lineHeight: 1,
-                        color: 'var(--text-primary)',
-                        transition: 'font-size 0.3s ease',
+                        color: isOvertime ? 'var(--accent-red)' : 'var(--text-primary)',
+                        transition: 'font-size 0.3s ease, color 0.3s ease',
+                        textShadow: '0 0 40px rgba(99, 102, 241, 0.15)',
                     }}
                 >
                     {formatTime(elapsedTime)}
@@ -150,6 +155,18 @@ const TimerDisplay = ({
                             : 'Stopwatch'
                     }
                 </div>
+
+                {isOvertime && overtimeMs > 0 && (
+                    <div style={{
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        color: 'var(--accent-red)',
+                        marginTop: '4px',
+                        letterSpacing: '0.05em',
+                    }}>
+                        {formatOvertime(overtimeMs)} overtime
+                    </div>
+                )}
             </motion.div>
         </div>
     );

@@ -36,7 +36,9 @@ export const useTimer = ({
     useEffect(() => { triggeredRef.current = triggeredEvents; }, [triggeredEvents]);
 
     const targetTimeRef = useRef(targetTime);
+    const timerModeRef = useRef(timerMode);
     useEffect(() => { targetTimeRef.current = targetTime; }, [targetTime]);
+    useEffect(() => { timerModeRef.current = timerMode; }, [timerMode]);
 
     const startTimeRef = useRef(null);
     const workerRef = useRef(null);
@@ -71,9 +73,18 @@ export const useTimer = ({
     const finalSoundRef = useRef(finalSound);
     const availableSoundsRef = useRef(availableSounds);
     const warningSoundsRef = useRef(WARNING_SOUNDS);
+    const volumeRef = useRef(volume);
     useEffect(() => { finalSoundRef.current = finalSound; }, [finalSound]);
     useEffect(() => { availableSoundsRef.current = availableSounds; }, [availableSounds]);
     useEffect(() => { warningSoundsRef.current = WARNING_SOUNDS; }, [WARNING_SOUNDS]);
+    useEffect(() => { volumeRef.current = volume; }, [volume]);
+
+    const getFinalSoundUrl = () => {
+        const v = finalSoundRef.current;
+        if (typeof v === 'string') return v;
+        if (v && typeof v === 'object' && typeof v.default === 'string') return v.default;
+        return null;
+    };
 
     const checkTriggers = useCallback((currentMs, prevMs, warnings) => {
         const target = targetTimeRef.current * 1000;
@@ -87,7 +98,8 @@ export const useTimer = ({
             const wTime = (w.triggerTime ?? 0) * 1000;
             if ((prevMs < wTime && currentMs >= wTime) && !triggered.has(w.id)) {
                 const src = soundMap[w.soundKey] || builtIn[w.soundKey];
-                if (src && play) play(src);
+                const url = typeof src === 'string' ? src : (src?.default ?? null);
+                if (url && play) play(url);
                 vibrate([100]);
                 safeTriggerAdd(w.id);
             }
@@ -96,7 +108,8 @@ export const useTimer = ({
         // 2. Check Final Target
         if (target > 0) {
             if ((prevMs < target && currentMs >= target) && !triggered.has('FINAL')) {
-                if (finalSoundRef.current && play) play(finalSoundRef.current);
+                const finalUrl = getFinalSoundUrl();
+                if (finalUrl && play) play(finalUrl);
                 vibrate([200, 100, 200]);
                 safeTriggerAdd('FINAL');
 
@@ -127,8 +140,9 @@ export const useTimer = ({
             }
         }
 
-        // 3. Spoken Announcements
+        // 3. Spoken Announcements (use defaults when Active Milestones not set)
         if (voiceAnnouncementsRef.current && 'speechSynthesis' in window) {
+            const vol = volumeRef.current ?? 100;
             const speakText = (text, rate = 0.9, pitch = 1.0) => {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -139,7 +153,7 @@ export const useTimer = ({
                 } else if (voices.length > 0) {
                     utterance.voice = voices[0];
                 }
-                utterance.volume = volume / 100;
+                utterance.volume = Math.max(0, Math.min(1, vol / 100));
                 utterance.rate = rate;
                 utterance.pitch = pitch;
                 window.speechSynthesis.speak(utterance);
@@ -154,28 +168,33 @@ export const useTimer = ({
                 return `${secs} seconds ${suffix}`;
             };
 
-            if (timerMode === 'countdown' || pomodoroEnabled) {
+            const defaultMilestones = [600, 300, 60];
+            const milestones = (voiceMilestonesRef.current?.length ? voiceMilestonesRef.current : defaultMilestones);
+            const finalWarningSec = voiceFinalWarningRef.current ?? 30;
+            const isCountdown = timerModeRef.current === 'countdown' || pomodoroEnabled;
+
+            if (isCountdown) {
                 const remainingMs = Math.max(0, targetTimeRef.current * 1000 - currentMs);
                 const remainingSec = Math.floor(remainingMs / 1000);
                 const prevRemainingSec = Math.floor(Math.max(0, targetTimeRef.current * 1000 - prevMs) / 1000);
 
-                const milestones = voiceMilestonesRef.current || [];
+                // Active Milestones in countdown: speak when crossing each "X remaining" threshold (same crossing logic as Final Warning)
                 for (const milestone of milestones) {
-                    if (remainingSec === milestone && prevRemainingSec > milestone) {
+                    if (prevRemainingSec > milestone && remainingSec <= milestone) {
                         speakText(formatMilestoneText(milestone, false));
                         break;
                     }
                 }
 
-                const finalWarning = voiceFinalWarningRef.current || 30;
-                if (remainingSec === finalWarning && prevRemainingSec > finalWarning) {
-                    speakText(`Warning! ${finalWarning} seconds remaining!`, 1.0, 1.1);
+                // Final Warning At: speak when countdown crosses the selected threshold (e.g. 30s remaining)
+                // Use crossing condition so we don't miss due to 100ms tick granularity
+                if (prevRemainingSec > finalWarningSec && remainingSec <= finalWarningSec) {
+                    speakText(`Warning! ${finalWarningSec} seconds remaining!`, 1.0, 1.1);
                 }
             } else {
                 const elapsedSec = Math.floor(currentMs / 1000);
                 const prevElapsedSec = Math.floor(prevMs / 1000);
 
-                const milestones = voiceMilestonesRef.current || [];
                 for (const milestone of milestones) {
                     if (elapsedSec === milestone && prevElapsedSec < milestone) {
                         speakText(formatMilestoneText(milestone, true));
@@ -184,7 +203,7 @@ export const useTimer = ({
                 }
             }
         }
-    }, [vibrate, safeTriggerAdd, pomodoroEnabled, pomodoroPhase, pomodoroBreakTime, pomodoroWorkTime, showToast, volume, timerMode]);
+    }, [vibrate, safeTriggerAdd, pomodoroEnabled, pomodoroPhase, pomodoroBreakTime, pomodoroWorkTime, showToast]);
 
     const resetForCycle = () => {
         setElapsedTime(0);
@@ -227,6 +246,10 @@ export const useTimer = ({
         if (isRunning) {
             if (!startTimeRef.current) {
                 startTimeRef.current = Date.now() - elapsedTime;
+                if (elapsedTime === 0) {
+                    setTriggeredEvents(new Set());
+                    triggeredRef.current = new Set();
+                }
             }
             workerRef.current.postMessage('START');
         } else {
