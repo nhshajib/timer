@@ -93,6 +93,32 @@ body {
   transition: background var(--transition-slow), color var(--transition-base);
 }
 
+/* Timer main screen: fixed control bar */
+.timer-control-bar {
+  -webkit-backdrop-filter: blur(16px);
+}
+.timer-control-bar .timer-control-btn {
+  outline: none;
+}
+.timer-control-bar .timer-control-reset:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+.timer-control-bar .timer-control-reset:not(:disabled):focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-primary);
+}
+.timer-control-bar .timer-control-play-pause:hover {
+  transform: scale(1.04);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+}
+.timer-control-bar .timer-control-play-pause:active {
+  transform: scale(0.98);
+}
+.timer-control-bar .timer-control-play-pause:focus-visible {
+  box-shadow: 0 0 0 3px var(--bg-primary), 0 0 0 5px var(--accent-primary) !important;
+}
+
 body::before {
   content: '';
   position: fixed;
@@ -451,6 +477,136 @@ body::after {
   background: rgba(148, 163, 184, 0.35);
 }
 
+/* Settings modal redesign */
+.settings-modal {
+  display: flex;
+  flex-direction: column;
+}
+.settings-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.settings-modal-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.settings-close-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.settings-close-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.15);
+}
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.15);
+  overflow-x: auto;
+  scrollbarWidth: none;
+  msOverflowStyle: none;
+}
+.settings-tabs::-webkit-scrollbar {
+  display: none;
+}
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  background: transparent;
+}
+.settings-tab:hover {
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.05);
+}
+.settings-tab-active {
+  color: white;
+  background: var(--accent-primary);
+}
+.settings-tab-active:hover {
+  color: white;
+  background: var(--accent-primary);
+  filter: brightness(1.1);
+}
+.settings-modal-content {
+  padding: 24px;
+  min-height: 300px;
+  overflow-y: auto;
+  max-height: calc(88vh - 180px);
+}
+.settings-save-btn {
+  width: 100%;
+  padding: 14px 20px;
+  margin-top: 12px;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s, filter 0.2s;
+}
+.settings-save-btn:hover {
+  filter: brightness(1.08);
+}
+.settings-modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.settings-done-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s, filter 0.2s;
+}
+.settings-done-btn:hover {
+  filter: brightness(1.08);
+}
+
 .input-modern {
   width: 100%;
   padding: 12px 14px;
@@ -477,10 +633,27 @@ body::after {
 select.input-modern {
   cursor: pointer;
   appearance: none;
+  background-color: var(--bg-tertiary);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
+  color: var(--text-primary);
+}
+
+select.input-modern option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* All dropdowns: readable in both themes (closed state + option list) */
+select {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .setting-row {
