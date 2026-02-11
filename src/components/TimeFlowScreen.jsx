@@ -61,10 +61,10 @@ const TimeFlowScreen = ({
 
   const clockStyle = {
     fontSize: 'calc(clamp(5.5rem, 22vw, 15rem) * var(--clock-scale, 1))',
-    fontWeight: 300,
+    fontWeight: 400,
     lineHeight: 1,
-    fontFamily: "'JetBrains Mono', monospace",
-    letterSpacing: '0.02em',
+    fontFamily: 'var(--font-mono)',
+    letterSpacing: '0.04em',
     fontVariantNumeric: 'tabular-nums',
   };
 
@@ -78,8 +78,9 @@ const TimeFlowScreen = ({
     color: 'var(--text-primary)',
     fontSize: '1rem',
     fontWeight: 600,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontFamily: 'var(--font-mono)',
     outline: 'none',
+    transition: 'background 0.2s, border-color 0.2s, color 0.2s',
   };
 
   return (
@@ -111,12 +112,14 @@ const TimeFlowScreen = ({
         >
           <h1
             style={{
+              fontFamily: 'var(--font-sans)',
               fontSize: '0.8rem',
-              letterSpacing: '0.18em',
+              letterSpacing: '0.2em',
               color: 'var(--text-muted)',
-              fontWeight: 600,
+              fontWeight: 700,
               textTransform: 'uppercase',
               margin: 0,
+              transition: 'color 0.2s',
             }}
           >
             Antigravity Timer
@@ -137,7 +140,7 @@ const TimeFlowScreen = ({
               borderRadius: 12,
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              transition: 'background 0.2s, border-color 0.2s',
+              transition: 'background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s',
             }}
           >
             <Settings size={20} />
@@ -148,15 +151,7 @@ const TimeFlowScreen = ({
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 48px' }}>
         <div style={{ maxWidth: 640, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 9999,
-                padding: 5,
-              }}
-            >
+            <div className="timer-mode-pill" style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9999, padding: 5 }}>
               <button
                 type="button"
                 onClick={() => switchMode('countdown')}
@@ -200,10 +195,11 @@ const TimeFlowScreen = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 40 }}>
+          <div className="timer-screen-main" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 40 }}>
             {isRunning || (isCountdown && elapsedTime > 0) ? (
-              <div style={{ textAlign: 'center' }}>
+              <div className={`timer-overtime-wrap ${isOvertime ? 'overtime-active' : ''}`} style={{ textAlign: 'center' }}>
                 <div
+                  className={`timer-clock ${isOvertime ? 'overtime' : ''}`}
                   style={{
                     ...clockStyle,
                     color: isOvertime ? 'var(--accent-red)' : (clockColor || 'var(--text-primary)'),
@@ -213,8 +209,9 @@ const TimeFlowScreen = ({
                   {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
                 </div>
                 {isOvertime && overtimeMs > 0 && (
-                  <div style={{ marginTop: 12, fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent-red)' }}>
-                    {formatOvertime(overtimeMs)} overtime
+                  <div className="timer-overtime-badge" role="status" aria-live="polite">
+                    <span className="overtime-value">{formatOvertime(overtimeMs)}</span>
+                    <span>Overtime</span>
                   </div>
                 )}
               </div>
@@ -281,22 +278,10 @@ const TimeFlowScreen = ({
           </div>
 
           <div style={{ width: '100%', maxWidth: 420, marginBottom: 32 }}>
-            <div
-              style={{
-                height: 4,
-                background: 'rgba(255,255,255,0.08)',
-                borderRadius: 9999,
-                overflow: 'hidden',
-              }}
-            >
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 9999, overflow: 'hidden' }}>
               <div
-                style={{
-                  height: '100%',
-                  width: `${progress}%`,
-                  background: 'var(--accent-primary)',
-                  borderRadius: 9999,
-                  transition: 'width 0.5s linear',
-                }}
+                className="timer-progress-bar"
+                style={{ height: '100%', width: `${progress}%`, background: isOvertime ? 'var(--accent-red)' : 'var(--accent-primary)', borderRadius: 9999 }}
               />
             </div>
           </div>
@@ -307,6 +292,7 @@ const TimeFlowScreen = ({
                 <button
                   key={mins}
                   type="button"
+                  className="timer-preset-btn"
                   onClick={() => setPreset(mins)}
                   style={{
                     padding: '10px 24px',
@@ -317,7 +303,6 @@ const TimeFlowScreen = ({
                     borderRadius: 9999,
                     fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
                   }}
                 >
                   {mins} min

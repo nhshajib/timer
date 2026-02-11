@@ -125,6 +125,8 @@ function App() {
   }, []);
 
   const timerRef = useRef(null);
+  const lastResetAtRef = useRef(0);
+  const RESET_DEBOUNCE_MS = 500;
 
   // --- CORE TIMER HOOK ---
   const timer = useTimer({
@@ -197,6 +199,9 @@ function App() {
   // --- KEYBOARD SHORTCUTS ---
   // Wrap resetTimer to save session if it was long enough
   const handleReset = useCallback(() => {
+    const now = Date.now();
+    if (now - lastResetAtRef.current < RESET_DEBOUNCE_MS) return;
+    lastResetAtRef.current = now;
     if (timer.elapsedTime > 60000 && !timer.pomodoroEnabled) { // > 1 minute
       setSessionHistory(prev => {
         const next = [...prev, {
