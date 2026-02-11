@@ -26,19 +26,9 @@ const Toggle = ({ checked, onChange, color = 'var(--accent-primary)' }) => (
     </label>
 );
 
-const SectionCard = ({ title, children, style }) => (
-    <div style={{
-        padding: '20px',
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 'var(--radius-lg)',
-        ...style,
-    }}>
-        {title && (
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
-                {title}
-            </div>
-        )}
+const SectionCard = ({ title, children, style, className = '' }) => (
+    <div className={`settings-section-card ${className}`.trim()} style={style}>
+        {title && <div className="settings-section-title">{title}</div>}
         {children}
     </div>
 );

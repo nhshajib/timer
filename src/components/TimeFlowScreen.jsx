@@ -43,12 +43,6 @@ const TimeFlowScreen = ({
     if (isRunning) handleReset();
   };
 
-  const setPreset = (mins) => {
-    if (isRunning) return;
-    setTargetTime(mins * 60);
-    handleReset();
-  };
-
   const handleInputChange = (type, value) => {
     if (isRunning) return;
     const num = Math.max(0, parseInt(value, 10) || 0);
@@ -59,13 +53,8 @@ const TimeFlowScreen = ({
     setTargetTime(h * 3600 + m * 60 + s);
   };
 
-  const clockStyle = {
-    fontSize: 'calc(clamp(5.5rem, 22vw, 15rem) * var(--clock-scale, 1))',
-    fontWeight: 400,
-    lineHeight: 1,
-    fontFamily: 'var(--font-mono)',
-    letterSpacing: '0.04em',
-    fontVariantNumeric: 'tabular-nums',
+  const clockSizeStyle = {
+    fontSize: 'calc(clamp(4.5rem, 18vw, 11rem) * var(--clock-scale, 1))',
   };
 
   const inputClass = {
@@ -84,125 +73,50 @@ const TimeFlowScreen = ({
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-      }}
-    >
-      <header
-        style={{
-          width: '100%',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 720,
-            margin: '0 auto',
-            padding: '20px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: '0.8rem',
-              letterSpacing: '0.2em',
-              color: 'var(--text-muted)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              margin: 0,
-              transition: 'color 0.2s',
-            }}
-          >
-            Antigravity Timer
-          </h1>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            aria-label="Settings"
-            title="Settings"
-            style={{
-              width: 44,
-              height: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 12,
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              transition: 'background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s',
-            }}
-          >
-            <Settings size={20} />
-          </button>
+    <div className="timer-page">
+      <header className="timer-page-header">
+        <div className="timer-header-inner">
+          <h1 className="timer-app-title">Antigravity Timer</h1>
+          <div className="timer-mode-pill">
+            <button
+              type="button"
+              onClick={() => switchMode('countdown')}
+              className={timerMode === 'countdown' ? 'active' : ''}
+            >
+              Timer
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('stopwatch')}
+              className={timerMode === 'stopwatch' ? 'active' : ''}
+            >
+              Stopwatch
+            </button>
+          </div>
+          <div className="timer-header-actions">
+            <button
+              type="button"
+              className="timer-settings-btn"
+              onClick={onOpenSettings}
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Settings size={18} />
+            </button>
+          </div>
         </div>
       </header>
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 48px' }}>
-        <div style={{ maxWidth: 640, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-            <div className="timer-mode-pill" style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9999, padding: 5 }}>
-              <button
-                type="button"
-                onClick={() => switchMode('countdown')}
-                style={{
-                  padding: '12px 48px',
-                  borderRadius: 9999,
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  ...(timerMode === 'countdown'
-                    ? { background: 'white', color: 'black', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }
-                    : { background: 'transparent', color: 'var(--text-muted)' }),
-                }}
-              >
-                Timer
-              </button>
-              <button
-                type="button"
-                onClick={() => switchMode('stopwatch')}
-                style={{
-                  padding: '12px 48px',
-                  borderRadius: 9999,
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  ...(timerMode === 'stopwatch'
-                    ? { background: 'white', color: 'black', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }
-                    : { background: 'transparent', color: 'var(--text-muted)' }),
-                }}
-              >
-                Stopwatch
-              </button>
-            </div>
-          </div>
-
-          <div className="timer-screen-main" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 40 }}>
+      <main className="timer-main">
+        <div className="timer-main-inner">
+          <div className="timer-screen-main">
             {isRunning || (isCountdown && elapsedTime > 0) ? (
-              <div className={`timer-overtime-wrap ${isOvertime ? 'overtime-active' : ''}`} style={{ textAlign: 'center' }}>
+              <div className={`timer-clock-wrap timer-overtime-wrap ${isOvertime ? 'overtime-active' : ''}`} style={{ textAlign: 'center' }}>
                 <div
-                  className={`timer-clock ${isOvertime ? 'overtime' : ''}`}
+                  className={`timer-clock-display timer-clock ${isOvertime ? 'overtime' : ''}`}
                   style={{
-                    ...clockStyle,
-                    color: isOvertime ? 'var(--accent-red)' : (clockColor || 'var(--text-primary)'),
+                    ...clockSizeStyle,
+                    color: isOvertime ? undefined : (clockColor || undefined),
                   }}
                 >
                   {hours > 0 && `${hours.toString().padStart(2, '0')}:`}
@@ -216,16 +130,18 @@ const TimeFlowScreen = ({
                 )}
               </div>
             ) : !showInput ? (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ ...clockStyle, color: 'var(--text-primary)' }}>
+              <div className="timer-clock-wrap" style={{ textAlign: 'center' }}>
+                <div className="timer-clock-display" style={clockSizeStyle}>
                   {formatTime(elapsedTime)}
                 </div>
               </div>
             ) : (
               <div style={{ textAlign: 'center', width: '100%' }}>
-                <div style={{ ...clockStyle, color: 'var(--text-primary)', marginBottom: 48 }}>
+                <div className="timer-clock-wrap" style={{ marginBottom: 48 }}>
+                <div className="timer-clock-display" style={{ ...clockSizeStyle, color: 'var(--text-primary)' }}>
                   {inputHours > 0 && `${inputHours.toString().padStart(2, '0')}:`}
                   {inputMinutes.toString().padStart(2, '0')}:{inputSeconds.toString().padStart(2, '0')}
+                </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -277,96 +193,38 @@ const TimeFlowScreen = ({
             )}
           </div>
 
-          <div style={{ width: '100%', maxWidth: 420, marginBottom: 32 }}>
-            <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 9999, overflow: 'hidden' }}>
+          <div className="timer-progress-wrap">
+            <div className="timer-progress-track">
               <div
                 className="timer-progress-bar"
-                style={{ height: '100%', width: `${progress}%`, background: isOvertime ? 'var(--accent-red)' : 'var(--accent-primary)', borderRadius: 9999 }}
+                style={{ width: `${progress}%`, background: isOvertime ? 'var(--accent-red)' : 'var(--accent-primary)' }}
               />
             </div>
           </div>
 
-          {isCountdown && !isRunning && elapsedTime === 0 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 36, flexWrap: 'wrap' }}>
-              {[1, 5, 10, 25].map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  className="timer-preset-btn"
-                  onClick={() => setPreset(mins)}
-                  style={{
-                    padding: '10px 24px',
-                    fontSize: '0.8rem',
-                    color: 'var(--text-secondary)',
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 9999,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {mins} min
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="timer-control-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, marginTop: 8 }}>
+          <div className="timer-control-bar">
             <button
               type="button"
-              className="timer-control-btn timer-control-reset"
+              className="timer-control-btn btn-control-reset"
               onClick={handleReset}
               disabled={!canReset}
               title="Reset"
-              style={{
-                width: 88,
-                height: 88,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                borderRadius: 22,
-                border: '1px solid rgba(255,255,255,0.14)',
-                background: canReset ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-                color: canReset ? 'var(--text-secondary)' : 'var(--text-muted)',
-                cursor: canReset ? 'pointer' : 'default',
-                transition: 'all 0.2s',
-              }}
             >
-              <RotateCcw size={28} strokeWidth={2} />
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Reset</span>
+              <RotateCcw size={20} strokeWidth={2.25} />
+              <span className="btn-label">Reset</span>
             </button>
             <button
               type="button"
-              className="timer-control-btn timer-control-play-pause"
+              className="timer-control-btn btn-control-primary"
               onClick={toggleTimer}
               title={isRunning ? 'Pause' : 'Start'}
-              style={{
-                width: 116,
-                height: 116,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                borderRadius: 58,
-                border: 'none',
-                background: 'white',
-                color: 'black',
-                cursor: 'pointer',
-                boxShadow: '0 6px 28px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.12)',
-                transition: 'transform 0.15s, box-shadow 0.2s',
-              }}
             >
               {isRunning ? (
-                <Pause size={40} strokeWidth={2} fill="black" />
+                <Pause size={28} strokeWidth={2.5} fill="currentColor" />
               ) : (
-                <Play size={40} strokeWidth={2} fill="black" style={{ marginLeft: 6 }} />
+                <Play size={28} strokeWidth={2.5} fill="currentColor" className="play-icon-offset" />
               )}
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                {isRunning ? 'Pause' : 'Start'}
-              </span>
+              <span className="btn-label">{isRunning ? 'Pause' : 'Start'}</span>
             </button>
           </div>
         </div>
